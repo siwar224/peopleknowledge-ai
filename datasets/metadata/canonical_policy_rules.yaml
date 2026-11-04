@@ -1,0 +1,217 @@
+# canonical_policy_rules.yaml
+# Source de vérité des règles FICTIVES de NovaTech Solutions.
+# Chaque chiffre cité dans un document du corpus doit venir d'ici.
+# Ces règles sont des règles de simulation : elles ne décrivent pas le droit du travail tunisien.
+#
+# Portée actuelle : Lot 1 (HR-001, HR-005, HR-006, HR-011, HR-013, HR-029).
+# Les lots 2 et 3 compléteront ce fichier ; ne pas modifier une règle déjà publiée
+# sans mettre à jour tous les documents qui la citent.
+
+meta:
+  company: NovaTech Solutions
+  fictional: true
+  currency: TND
+  last_updated: 2026-11-04
+  reference_date_for_questions: 2026-11-04
+
+company_basics:
+  headquarters: "Tunis, Les Berges du Lac (adresse fictive)"
+  employees: 150
+  departments: [Engineering, Product, Sales, Operations, People & Finance]
+  hr_portal: NovaHR
+  hr_email: rh@novatech-solutions.example
+  hr_service_hours: "lundi–vendredi, 09:00–17:00"
+
+roles:
+  # Identifiants utilisés dans les métadonnées et les contrôles d'accès
+  employee: "Tout collaborateur"
+  manager: "Responsable hiérarchique direct (N+1) d'au moins une personne"
+  head_of_department: "Directeur de département (N+2 de la plupart des collaborateurs)"
+  hr_admin: "Équipe People (RH) du département People & Finance"
+
+employment_types:
+  cdi: "Contrat à durée indéterminée"
+  cdd: "Contrat à durée déterminée"
+  stagiaire: "Stage conventionné"
+  # Les consultants externes (freelances) ne sont pas couverts par les politiques RH (lot 2 : HR-009)
+
+probation:
+  duration_months: 3
+  renewable_once: true
+  max_total_months: 6
+
+working_time:
+  weekly_hours: 40
+  work_days: "lundi–vendredi"
+  flexible_start: "08:00–10:00"
+  core_hours: "10:00–16:00"
+
+annual_leave:                       # HR-005 v1.2
+  leave_year: "1er janvier – 31 décembre"
+  accrual_days_per_month: 2
+  base_entitlement_days_full_time: 24   # jours ouvrés
+  unit: "jour ouvré ; demi-journée possible"
+  seniority_bonus:                  # jours ajoutés au droit annuel, à partir du 1er janvier suivant l'anniversaire
+    - {min_years: 3, extra_days: 1}
+    - {min_years: 5, extra_days: 2}
+    - {min_years: 10, extra_days: 3}
+  part_time: "prorata du temps de travail"
+  cdd: "même acquisition (2 j/mois) ; jours à poser avant la fin du contrat ; pas de report"
+  stagiaire: "pas de congé annuel ; 1 jour d'absence autorisée par mois de stage complet, non cumulable au-delà du stage"
+  probation:
+    general_rule: "jours acquis dès l'embauche, mais non posables pendant la période d'essai"
+    exception: "jusqu'à 2 jours posables pendant l'essai, avec accord du manager ET validation RH (hr_admin)"
+    renewed_probation: "l'exception de 2 jours s'applique une seule fois sur toute la durée d'essai"
+  carry_over:
+    max_days: 5
+    use_before: "31 mars de l'année suivante"
+    exception: "jusqu'à 10 jours si un congé posé au 4e trimestre a été refusé pour raison de service ; validation hr_admin"
+    expired_days: "perdus, sauf exception ci-dessus"
+  minimum_rest:
+    min_days_per_year: 10
+    consecutive_block: "au moins une période de 5 jours ouvrés consécutifs par an"
+  notice_periods:                   # délai entre la soumission et le 1er jour d'absence, en jours ouvrés
+    - {duration: "0,5 à 2 jours", notice_working_days: 3}
+    - {duration: "3 à 5 jours", notice_working_days: 10}
+    - {duration: "6 à 15 jours", notice_working_days: 20}
+    - {duration: "plus de 15 jours", notice_working_days: 30}
+  max_consecutive_days_without_extra_approval: 15
+  long_leave_approval: "au-delà de 15 jours ouvrés consécutifs : manager + head_of_department + hr_admin"
+  blackout_periods:
+    people_and_finance: "du 20 décembre au 10 janvier (clôture annuelle)"
+    sales: "du 15 au 31 décembre (clôture commerciale)"
+    engineering: "semaines de gel de production annoncées au moins 4 semaines à l'avance"
+  team_coverage_rule: "au moins 50 % de l'équipe présente chaque jour ouvré"
+  advance_leave:
+    max_negative_balance_days: 3
+    eligible: "CDI ayant terminé leur période d'essai"
+    approval: manager
+  public_holidays: "non décomptés ; calendrier publié par les RH en décembre"
+  sick_during_leave: "jours convertis en congé maladie si certificat transmis sous 48 h (détails : HR-007, lot 2)"
+  departure: "solde positif payé en indemnité compensatrice ; solde négatif déduit du solde de tout compte"
+
+leave_request:                      # HR-006 v1.1
+  tool: NovaHR
+  manager_response_sla_working_days: 3
+  reminder: "relance automatique au manager à J+3 ouvrés"
+  escalation: "escalade au head_of_department à J+5 ouvrés sans réponse"
+  no_auto_approval: true
+  manager_absent: "délégation au head_of_department ou au délégué déclaré dans NovaHR"
+  cancellation_before_start: "libre jusqu'à la veille ouvrée du premier jour (avant 17:00)"
+  cancellation_after_start: "uniquement via le manager ; les jours non pris sont recrédités"
+  modification: "toute modification de dates = nouvelle demande soumise aux délais ; raccourcir une absence ne demande aucun délai"
+  refusal_must_be_justified: true
+  refusal_reasons: [solde insuffisant, délai de prévenance non respecté, période de gel, couverture d'équipe < 50 %]
+  repeated_refusal: "2 refus pour la même période → médiation hr_admin possible"
+  probation_requests: "routage automatique vers hr_admin après accord du manager"
+
+remote_work_v1:                     # HR-029 v1.0 — ARCHIVÉE
+  effective_from: 2025-01-01
+  effective_until: 2026-08-31
+  days_per_week: 1
+  eligibility: "CDI avec au moins 6 mois d'ancienneté"
+  cdd: non éligible
+  stagiaire: non éligible
+  fixed_day: "jour fixe choisi pour le trimestre"
+  notice_working_days: 5
+  approval: "manager + hr_admin"
+  allowance: aucune
+  abroad: interdit
+  carry_over_days: non
+
+remote_work_v2:                     # HR-011 v2.0 — ACTIVE
+  effective_from: 2026-09-01
+  effective_until: null
+  days_per_week_max: 2
+  per_role_limits: "la matrice HR-013 fait foi pour chaque département / famille de poste"
+  eligibility: "CDI et CDD ayant terminé leur période d'essai"
+  during_probation: "1 jour/semaine maximum à partir du 2e mois, avec accord du manager"
+  stagiaire: "1 jour/semaine après 1 mois de stage, si la matrice l'autorise"
+  anchor_days:                      # jour de présence obligatoire au bureau
+    Engineering: mardi
+    Product: mardi
+    Sales: lundi
+    Operations: mercredi
+    "People & Finance": jeudi
+  regular_schedule: "jours habituels convenus avec le manager pour chaque trimestre"
+  ad_hoc_change_notice_hours: 48
+  approval: "manager (hr_admin seulement pour les exceptions)"
+  carry_over_days: "non ; un jour non utilisé est perdu à la fin de la semaine"
+  allowance:
+    amount_tnd_per_month: 40
+    condition: "au moins 6 jours de télétravail effectifs dans le mois"
+  equipment: "ordinateur portable + casque fournis ; écran externe sur demande à l'IT"
+  security: "VPN obligatoire ; Wi-Fi public interdit sans VPN ; poste verrouillé"
+  abroad:
+    max_working_days_per_year: 10
+    approval: "manager + hr_admin + IT"
+  exceptions:
+    temporary_full_remote: "jusqu'à 5 jours ouvrés consécutifs (déménagement, garde d'enfant ponctuelle, travaux) — validation hr_admin"
+    medical_recommendation: "jusqu'à 4 semaines, sur recommandation médicale — validation hr_admin"
+    on_call_sre: "3 jours/semaine pour Engineering / SRE d'astreinte (voir HR-013)"
+  on_site_roles: "Office management, support IT sur site : 0 jour (HR-013)"
+
+details_introduced_in_lot1:
+  # Règles secondaires apparues lors de la rédaction ; à respecter dans les lots suivants
+  annual_leave:
+    partial_month: "prorata des jours calendaires, arrondi à la demi-journée supérieure"
+    part_time_example: "80 % → 1,6 j/mois → 19,2 j/an, arrondis à 19,5 dans NovaHR"
+    cdd_planning: "le manager planifie les jours restants au moins 1 mois avant la fin du CDD"
+    stagiaire_days: "cumulables pendant le stage, ni reportés ni payés"
+    minimum_rest_exemption: "non applicable la 1re année si embauche après le 1er juillet"
+    extended_carry_over_deadline: "demande à hr_admin avant le 15 janvier"
+    blackout_override: head_of_department
+    internal_mobility: "solde conservé ; gel du nouveau département applicable dès le changement"
+  leave_request:
+    backup_field: "obligatoire pour toute absence de plus de 2 jours"
+    edit_before_approval: "le délai de 3 jours ouvrés du manager repart à zéro"
+  remote_work_v2:
+    suspension_by_manager: "préavis d'1 semaine ; > 4 semaines validé par hr_admin"
+    abroad_request_notice_working_days: 15
+    public_places: "VPN + filtre de confidentialité obligatoires"
+    lost_equipment_report_hours: 24
+    sanction: "suspension 3 mois après entretien manager + hr_admin en cas de manquements répétés"
+    allowance_payment: "versée avec le salaire du mois suivant"
+  remote_work_v1:
+    contract: "avenant trimestriel renouvelé tacitement"
+    change_request_channel: "e-mail au manager, copie hr_admin"
+    no_half_days: true
+    places: "domicile déclaré uniquement"
+    equipment: "ordinateur portable uniquement"
+    medical: "au cas par cas, sans durée maximale"
+    end_by_manager_notice: "2 semaines"
+    pilot_2024: "22 collaborateurs Engineering pendant 6 mois"
+    fixed_day_allowed: "mardi à vendredi ; lundi exclu (réunions hebdomadaires d'équipe)"
+    quarter_change_notice: "15 jours calendaires avant le début du trimestre ; sinon reconduction"
+    hr_response_working_days: 10
+    case_by_case_roles: "support client (permanence), paie (clôture mensuelle) : avis manager, décision hr_admin"
+    accident_report_hours: 24
+    review: "bilan RH après 18 mois (questionnaire) → a conduit à la v2"
+  matrix_hr013:
+    rows: 38
+    customer_support_agent_max_days: 1
+    sre_on_call_max_days: 3
+    facilities_coordinator: "1 j/semaine, 0 pendant l'essai"
+    payroll_specialist: "pas de télétravail du 25 au dernier jour ouvré du mois"
+
+handbook:                           # HR-001 v3.0
+  effective_from: 2026-10-01
+  founded: 2016
+  payroll_date: "dernier jour ouvré du mois"
+  reviews: "entretien annuel en janvier, point de mi-année en juillet"
+  internal_mobility_min_months_in_role: 12
+  office_hours: "lundi–vendredi, 07:30–20:00 ; hors horaires : accord manager + Services généraux"
+  badge: "nominatif ; perte signalée à l'accueil, badge provisoire pour la journée"
+  visitors: "annoncés, enregistrés, badge visiteur, accompagnés en permanence"
+  all_hands: "premier mardi du mois à 10:00, présentiel + visio"
+  right_to_disconnect: "pas d'obligation de réponse 20:00–08:00, week-end et congés"
+  evacuation_drills_per_year: 2
+  accident_report_hours: 24          # bureau, déplacement ou télétravail
+  wellbeing_counselling_sessions_per_year: 6   # gratuit, anonyme, prestataire externe fictif
+  laptop_renewal_years: 3
+  lost_equipment_report_hours: 24
+  business_travel: "validation manager avant réservation ; réservations via l'équipe Achats (Operations) ; domicile-bureau exclu"
+  calendar_table: "chapitre 3.4 du Handbook résume les échéances annuelles de HR-005, HR-011/012, HR-019"
+  meal_expense_cap_tnd: 35          # résumé de HR-020 v2 (lot 3) ; v1 = 25 TND jusqu'au 2026-09-30
+  training_budget_tnd_per_year: 1500   # résumé de HR-018 (lot 2)
+  health_insurance: "assurance groupe, prise en charge employeur 70 % de la cotisation"   # HR-017 (lot 2)
