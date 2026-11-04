@@ -1,0 +1,41 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Environnements virtuels
+.venv/
+venv/
+env/
+
+# Secrets et configuration locale
+.env
+.env.*
+!.env.example
+
+# Dataset : les documents, métadonnées et évaluations restent locaux
+datasets/**
+!datasets/source_documents/
+!datasets/metadata/
+!datasets/evaluation/
+datasets/source_documents/**
+datasets/metadata/**
+datasets/evaluation/**
+!datasets/source_documents/.gitkeep
+!datasets/metadata/.gitkeep
+!datasets/evaluation/.gitkeep
+
+# Données générées / index locaux
+datasets/processed/
+datasets/indexes/
+*.sqlite3
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
