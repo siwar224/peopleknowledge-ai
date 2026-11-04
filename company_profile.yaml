@@ -1,0 +1,240 @@
+# company_profile.yaml — référentiel de NovaTech Solutions (fictif)
+meta:
+  version: "1.0"
+  last_updated: 2026-11-04
+  fictional: true
+  purpose: "Référentiel des entités. Ne contient aucune règle RH (voir canonical_policy_rules.yaml)."
+
+company:
+  name: NovaTech Solutions
+  country: TN
+  city: Tunis
+  founded: 2016
+  headcount: 150
+  languages: [fr, en]
+  currency: TND
+
+departments:
+  - id: engineering
+    label: Engineering
+    aliases: [engineering, ingénierie, tech, dev]
+    headcount: 60
+  - id: product
+    label: Product
+    aliases: [product, produit]
+    headcount: 20
+  - id: sales
+    label: Sales
+    aliases: [sales, commercial, ventes]
+    headcount: 30
+  - id: operations
+    label: Operations
+    aliases: [operations, opérations, ops]
+    headcount: 20
+  - id: people_finance
+    label: "People & Finance"
+    aliases: ["People & Finance", "People and Finance", "P&F", RH, HR, finance]
+    headcount: 20
+
+# Valeurs de portée utilisées par les filtres, sans représenter un département réel.
+department_scopes:
+  - id: all
+    label: Tous
+    aliases: [Tous, Toutes, all]
+    description: "S'applique à tous les départements. Valeur utilisée par la matrice d'éligibilité."
+
+roles:
+  - id: employee
+    label: Collaborateur
+    aliases: [collaborateur, salariée, salarié, employee, employé]
+    description: "Tout salarié de NovaTech"
+  - id: manager
+    label: Manager
+    aliases: [manager, responsable hiérarchique, N+1]
+    description: "Responsable hiérarchique direct d'un collaborateur"
+    inherits: [employee]
+  - id: head_of_department
+    label: Head of department
+    aliases: [head of department, directeur de département, responsable de département, N+2]
+    description: "Directeur d'un département et niveau d'escalade organisationnelle"
+    inherits: [manager]
+  - id: hr_admin
+    label: Administrateur RH
+    aliases: ["équipe RH", RH, HR, People, "équipe People"]
+    description: "Équipe People du département People & Finance"
+    inherits: [employee]
+  - id: it_support
+    label: Support IT
+    aliases: ["équipe IT", IT, "support informatique", "support IT"]
+    description: "Équipe qui gère les équipements, comptes, VPN et incidents IT"
+    inherits: [employee]
+  - id: ceo
+    label: CEO
+    aliases: [CEO, direction, "direction générale"]
+    description: "Direction générale, notamment valideur de la portée Tous dans la matrice"
+    inherits: [employee]
+  - id: tutor
+    label: Tuteur
+    aliases: [tuteur, tutrice]
+    description: "Référent d'un stagiaire pour les demandes qui le nécessitent"
+    inherits: [employee]
+
+employment_types:
+  - id: cdi
+    label: Contrat à durée indéterminée
+    aliases: [CDI, "contrat à durée indéterminée"]
+  - id: cdd
+    label: Contrat à durée déterminée
+    aliases: [CDD, "contrat à durée déterminée"]
+  - id: stagiaire
+    label: Stagiaire
+    aliases: [stagiaire, stage]
+
+# Les consultants externes et prestataires sont cités dans les politiques,
+# mais ne sont pas couverts par le référentiel RH ni par la matrice du CSV.
+out_of_scope_populations:
+  - id: external_consultant
+    label: Consultant externe
+    aliases: ["consultant externe", prestataire, freelance]
+    in_hr_policy_scope: false
+
+job_families:
+  - id: account_executive
+    label: Account Executive
+    aliases: ["Account Executive"]
+    department: sales
+  - id: accountant
+    label: Accountant
+    aliases: [Accountant, comptable]
+    department: people_finance
+  - id: business_developer
+    label: Business Developer
+    aliases: ["Business Developer"]
+    department: sales
+  - id: customer_success_manager
+    label: Customer Success Manager
+    aliases: ["Customer Success Manager"]
+    department: sales
+  - id: customer_support_agent
+    label: Customer Support Agent
+    aliases: ["Customer Support Agent", "agent support client"]
+    department: operations
+  - id: data_engineer
+    label: Data Engineer
+    aliases: ["Data Engineer"]
+    department: engineering
+  - id: engineering_manager
+    label: Engineering Manager
+    aliases: ["Engineering Manager"]
+    department: engineering
+  - id: facilities_coordinator
+    label: Facilities Coordinator
+    aliases: ["Facilities Coordinator"]
+    department: operations
+  - id: head_of_department
+    label: Head of department
+    aliases: ["Head of department", directeur de département]
+    department: all
+  - id: hr_business_partner
+    label: HR Business Partner
+    aliases: ["HR Business Partner"]
+    department: people_finance
+  - id: hris_administrator
+    label: HRIS Administrator
+    aliases: ["HRIS Administrator"]
+    department: people_finance
+  - id: it_support_sur_site
+    label: IT Support sur site
+    aliases: ["IT Support sur site", "support informatique sur site"]
+    department: operations
+  - id: office_manager
+    label: Office Manager
+    aliases: ["Office Manager"]
+    department: operations
+  - id: payroll_specialist
+    label: Payroll Specialist
+    aliases: ["Payroll Specialist"]
+    department: people_finance
+  - id: procurement_specialist
+    label: Procurement Specialist
+    aliases: ["Procurement Specialist", achats]
+    department: operations
+  - id: product_designer
+    label: Product Designer
+    aliases: ["Product Designer"]
+    department: product
+  - id: product_manager
+    label: Product Manager
+    aliases: ["Product Manager"]
+    department: product
+  - id: qa_engineer
+    label: QA Engineer
+    aliases: ["QA Engineer", qualité]
+    department: engineering
+  - id: receptionist
+    label: Receptionist
+    aliases: [Receptionist, accueil]
+    department: people_finance
+  - id: recruiter
+    label: Recruiter
+    aliases: [Recruiter, recruteur, recruteuse]
+    department: people_finance
+  - id: sales_operations
+    label: Sales Operations
+    aliases: ["Sales Operations"]
+    department: sales
+  - id: software_engineer
+    label: Software Engineer
+    aliases: ["Software Engineer", développeur, développeuse]
+    department: engineering
+  - id: sre
+    label: SRE
+    aliases: ["SRE (astreinte)", "astreinte SRE"]
+    department: engineering
+    situations:
+      - id: on_call
+        label: Astreinte
+        aliases: [astreinte, on-call]
+  - id: support_team_lead
+    label: Support Team Lead
+    aliases: ["Support Team Lead"]
+    department: operations
+  - id: ux_researcher
+    label: UX Researcher
+    aliases: ["UX Researcher"]
+    department: product
+
+systems:
+  - id: novahr
+    label: NovaHR
+    aliases: [NovaHR, "portail RH", "portail RH de NovaTech"]
+    type: hr_portal
+  - id: it_support_portal
+    label: Portail de support IT
+    aliases: ["Portail de support IT", "portail support IT", ticket]
+    type: support_portal
+  - id: intranet
+    label: Intranet
+    aliases: [intranet]
+    type: internal_portal
+  - id: novatech_vpn
+    label: VPN NovaTech
+    aliases: [VPN, "VPN NovaTech"]
+    type: security_access
+
+document_categories:
+  - company
+  - leave
+  - remote_work
+  - employment
+  - working_time
+  - compensation
+  - benefits
+  - performance
+  - conduct
+  - information_security
+  - it_support
+  - onboarding
+  - offboarding
+  - travel_and_expenses
+  - health_and_absence

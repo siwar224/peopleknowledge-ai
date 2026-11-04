@@ -39,3 +39,6 @@ datasets/indexes/
 Thumbs.db
 .idea/
 .vscode/
+.history/
+tests/
+scripts/
