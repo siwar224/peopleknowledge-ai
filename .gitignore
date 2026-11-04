@@ -40,5 +40,4 @@ Thumbs.db
 .idea/
 .vscode/
 .history/
-tests/
-scripts/
+!datasets/metadata/*.yaml
