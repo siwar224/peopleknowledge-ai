@@ -41,3 +41,5 @@ Thumbs.db
 .vscode/
 .history/
 !datasets/metadata/*.yaml
+/CLAUDE.md
+/AGENT.md

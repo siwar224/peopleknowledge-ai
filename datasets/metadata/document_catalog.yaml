@@ -1,0 +1,115 @@
+# document_catalog.yaml — fiche descriptive de chaque document du corpus (rédigée à la main)
+#
+# build_manifest.py fusionne ce catalogue avec l'inventaire technique (hash, taille, chemin)
+# pour produire document_manifest.jsonl. Le catalogue fait foi pour l'identité et la validité
+# des documents ; rien ici n'est déduit du nom de fichier.
+#
+# Clé de jointure : `file`, chemin relatif à datasets/source_documents/.
+# Valeurs autorisées :
+#   lifecycle_status : active | archived
+#   doc_type         : handbook | policy | procedure | matrix
+#   category         : voir document_categories dans company_profile.yaml
+#   department_scope : id d'un département ou d'une portée (company_profile.yaml)
+# Dates au format AAAA-MM-JJ ; effective_until: null = toujours en vigueur.
+
+meta:
+  version: "1.0"
+  last_updated: 2026-11-04
+  fictional: true
+
+documents:
+  - file: 01_company/employee_handbook.pdf
+    document_id: HR-001
+    family_id: employee_handbook
+    title: "Employee Handbook — Guide du collaborateur"
+    doc_type: handbook
+    version: "3.0"
+    lifecycle_status: active
+    effective_from: 2026-10-01
+    effective_until: null
+    supersedes: null
+    superseded_by: null
+    language: fr
+    category: company
+    department_scope: all
+    owner: people_finance
+
+  - file: 02_leave_and_work/annual_leave_policy.pdf
+    document_id: HR-005
+    family_id: annual_leave_policy
+    title: "Politique des congés annuels"
+    doc_type: policy
+    version: "1.2"
+    lifecycle_status: active
+    effective_from: 2026-01-01
+    effective_until: null
+    supersedes: null
+    superseded_by: null
+    language: fr
+    category: leave
+    department_scope: all
+    owner: people_finance
+
+  - file: 02_leave_and_work/leave_request_procedure.docx
+    document_id: HR-006
+    family_id: leave_request_procedure
+    title: "Procédure de demande de congé"
+    doc_type: procedure
+    version: "1.1"
+    lifecycle_status: active
+    effective_from: 2026-03-01
+    effective_until: null
+    supersedes: null
+    superseded_by: null
+    language: fr
+    category: leave
+    department_scope: all
+    owner: people_finance
+
+  - file: 02_leave_and_work/remote_work_policy_v2.pdf
+    document_id: HR-011
+    family_id: remote_work_policy
+    title: "Politique de télétravail"
+    doc_type: policy
+    version: "2.0"
+    lifecycle_status: active
+    effective_from: 2026-09-01
+    effective_until: null
+    supersedes: HR-029
+    superseded_by: null
+    language: fr
+    category: remote_work
+    department_scope: all
+    owner: people_finance
+
+  - file: 02_leave_and_work/remote_work_eligibility_matrix.csv
+    document_id: HR-013
+    family_id: remote_work_eligibility_matrix
+    title: "Matrice d'éligibilité au télétravail"
+    doc_type: matrix
+    version: "1.0"           # première matrice, créée avec la politique HR-011 v2.0
+    lifecycle_status: active
+    effective_from: 2026-09-01
+    effective_until: null
+    supersedes: null
+    superseded_by: null
+    language: fr
+    category: remote_work
+    department_scope: all
+    owner: people_finance
+
+  - file: 06_archived/remote_work_policy_v1.pdf
+    document_id: HR-029
+    family_id: remote_work_policy
+    title: "Politique de télétravail"
+    doc_type: policy
+    version: "1.0"
+    lifecycle_status: archived
+    effective_from: 2025-01-01
+    effective_until: 2026-08-31
+    supersedes: null
+    superseded_by: HR-011
+    language: fr
+    category: remote_work
+    department_scope: all
+    owner: people_finance

@@ -1,8 +1,14 @@
-"""Construit un inventaire technique des fichiers source.
+"""Construit le manifest des fichiers source.
 
-Le script ne parse pas les fichiers et n'en extrait pas le texte. Il lit
-uniquement les octets nécessaires au calcul de l'empreinte SHA-256, puis écrit
-un objet JSON par fichier dans ``datasets/metadata/document_manifest.jsonl``.
+Le script ne parse pas les fichiers et n'en extrait pas le texte. Il combine :
+
+- un inventaire technique (chemin, taille, empreinte SHA-256, comparaison avec
+  le manifest précédent) ;
+- la fiche descriptive de chaque document, rédigée à la main dans
+  ``datasets/metadata/document_catalog.yaml`` (identité, version, validité,
+  langue, catégorie).
+
+Il écrit un objet JSON par fichier dans ``datasets/metadata/document_manifest.jsonl``.
 """
 
 from __future__ import annotations
@@ -13,15 +19,40 @@ import json
 import os
 import re
 from collections import Counter
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from pathlib import Path
 from tempfile import NamedTemporaryFile
+
+import yaml
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_SOURCE_DIR = PROJECT_ROOT / "datasets" / "source_documents"
 DEFAULT_OUTPUT_PATH = PROJECT_ROOT / "datasets" / "metadata" / "document_manifest.jsonl"
+DEFAULT_CATALOG_PATH = PROJECT_ROOT / "datasets" / "metadata" / "document_catalog.yaml"
 HASH_CHUNK_SIZE = 1024 * 1024
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
+
+# Champs du catalogue recopiés dans le manifest, dans cet ordre.
+CATALOG_FIELDS = (
+    "document_id",
+    "family_id",
+    "title",
+    "doc_type",
+    "version",
+    "lifecycle_status",
+    "effective_from",
+    "effective_until",
+    "supersedes",
+    "superseded_by",
+    "language",
+    "category",
+    "department_scope",
+    "owner",
+)
+# Champs qui peuvent valoir null dans le catalogue.
+OPTIONAL_CATALOG_FIELDS = {"effective_until", "supersedes", "superseded_by"}
+LIFECYCLE_STATUSES = {"active", "archived"}
+DOC_TYPES = {"handbook", "policy", "procedure", "matrix"}
 VERSION_SUFFIX_PATTERN = re.compile(r"(?:[_-](?:v|version)[_-]?)(\d+(?:[._-]\d+)?)$", re.IGNORECASE)
 POLICY_SUFFIX_PATTERN = re.compile(r"(?:[_-]policy)$", re.IGNORECASE)
 
@@ -48,7 +79,8 @@ def logical_identity(path: Path) -> tuple[str, str]:
 
     Convention actuelle : ``remote_work_policy_v2.pdf`` devient
     ``HR-REMOTE-WORK`` et ``HR-REMOTE-WORK-v2``. Un fichier sans suffixe de
-    version explicite est considéré comme la version ``v1``.
+    version explicite est considéré comme la version ``v1``. Cette identité
+    provisoire n'est conservée que pour les fichiers absents du catalogue.
     """
 
     stem = path.stem
@@ -101,7 +133,7 @@ def build_record(path: Path, source_dir: Path) -> dict[str, object]:
         "size_bytes": file_stat.st_size,
         "modified_at_utc": modified_at_utc(path),
         "sha256": file_sha256,
-        "status": "new",
+        "change_status": "new",
         "identity_resolution": "generated",
         "is_duplicate": False,
         "duplicate_of": None,
@@ -217,9 +249,9 @@ def compare_with_previous(
             if not preserve_identity(record, previous_record):
                 mark_ambiguous_identity(record, [previous_record])
             if previous_sha256 == sha256:
-                record["status"] = "unchanged"
+                record["change_status"] = "unchanged"
             else:
-                record["status"] = "modified"
+                record["change_status"] = "modified"
                 record["previous_sha256"] = previous_sha256
             continue
 
@@ -252,10 +284,10 @@ def compare_with_previous(
 
         if len(same_content_records) != 1:
             if len(current_candidate_paths) == 1:
-                record["status"] = "copied"
+                record["change_status"] = "copied"
                 record["copied_from"] = current_candidate_paths[0]
             else:
-                record["status"] = "ambiguous"
+                record["change_status"] = "ambiguous"
                 if unique_identity is None:
                     mark_ambiguous_identity(record, same_content_records)
                 else:
@@ -267,10 +299,10 @@ def compare_with_previous(
 
         previous_source_path = str(same_content_records[0]["source_path"])
         if previous_source_path in current_paths:
-            record["status"] = "copied"
+            record["change_status"] = "copied"
             record["copied_from"] = previous_source_path
         else:
-            record["status"] = classify_path_change(previous_source_path, source_path)
+            record["change_status"] = classify_path_change(previous_source_path, source_path)
             record["previous_source_path"] = previous_source_path
 
         if unique_identity is None:
@@ -294,7 +326,7 @@ def mark_duplicates(records: list[dict[str, object]]) -> int:
     ordered_records = sorted(
         records,
         key=lambda record: (
-            record.get("status") == "copied",
+            record.get("change_status") == "copied",
             str(record.get("source_path", "")),
         ),
     )
@@ -310,6 +342,124 @@ def mark_duplicates(records: list[dict[str, object]]) -> int:
         duplicate_count += 1
 
     return duplicate_count
+
+
+def iso_date(value: object) -> str | None:
+    """Normalise une date du catalogue (date YAML ou texte AAAA-MM-JJ)."""
+
+    if value is None:
+        return None
+    if isinstance(value, date):
+        return value.isoformat()
+    return date.fromisoformat(str(value)).isoformat()
+
+
+def validate_catalog(entries: list[dict[str, object]]) -> list[str]:
+    """Retourne la liste des erreurs du catalogue (vide si le catalogue est valide)."""
+
+    errors: list[str] = []
+    files: Counter[str] = Counter()
+    document_ids: Counter[str] = Counter()
+
+    for position, entry in enumerate(entries, start=1):
+        label = f"documents[{position}] ({entry.get('file', '?')})"
+        if not entry.get("file"):
+            errors.append(f"{label} : champ « file » manquant.")
+        else:
+            files[str(entry["file"])] += 1
+
+        for field in CATALOG_FIELDS:
+            if field not in entry:
+                errors.append(f"{label} : champ « {field} » manquant.")
+            elif entry[field] is None and field not in OPTIONAL_CATALOG_FIELDS:
+                errors.append(f"{label} : champ « {field} » vide.")
+
+        if entry.get("document_id"):
+            document_ids[str(entry["document_id"])] += 1
+        if entry.get("lifecycle_status") not in LIFECYCLE_STATUSES:
+            errors.append(f"{label} : lifecycle_status doit valoir {sorted(LIFECYCLE_STATUSES)}.")
+        if entry.get("doc_type") not in DOC_TYPES:
+            errors.append(f"{label} : doc_type doit valoir {sorted(DOC_TYPES)}.")
+
+        try:
+            start = iso_date(entry.get("effective_from"))
+            end = iso_date(entry.get("effective_until"))
+        except ValueError:
+            errors.append(f"{label} : date invalide (format attendu AAAA-MM-JJ).")
+        else:
+            if start and end and end < start:
+                errors.append(f"{label} : effective_until est antérieure à effective_from.")
+            if entry.get("lifecycle_status") == "archived":
+                if end is None:
+                    errors.append(f"{label} : un document archivé doit avoir effective_until.")
+                if not entry.get("superseded_by"):
+                    errors.append(f"{label} : un document archivé doit avoir superseded_by.")
+
+    errors += [f"Fichier catalogué plusieurs fois : {name}" for name, n in files.items() if n > 1]
+    errors += [f"document_id en double : {doc_id}" for doc_id, n in document_ids.items() if n > 1]
+
+    for entry in entries:
+        for field in ("supersedes", "superseded_by"):
+            target = entry.get(field)
+            if target and target not in document_ids:
+                errors.append(
+                    f"{entry.get('document_id')} : {field} pointe vers {target}, absent du catalogue."
+                )
+
+    return errors
+
+
+def load_catalog(catalog_path: Path) -> dict[str, dict[str, object]]:
+    """Charge et valide le catalogue, indexé par chemin relatif du fichier.
+
+    Un catalogue absent n'est pas une erreur : les documents sont alors tous
+    signalés comme non catalogués. Un catalogue invalide arrête le script.
+    """
+
+    if not catalog_path.exists():
+        return {}
+
+    with catalog_path.open("r", encoding="utf-8") as catalog_file:
+        content = yaml.safe_load(catalog_file) or {}
+
+    entries = content.get("documents") or []
+    errors = validate_catalog(entries)
+    if errors:
+        details = "\n".join(f"  - {error}" for error in errors)
+        raise ValueError(f"Catalogue invalide ({catalog_path}) :\n{details}")
+
+    return {str(entry["file"]): entry for entry in entries}
+
+
+def apply_catalog(
+    records: list[dict[str, object]], catalog: dict[str, dict[str, object]]
+) -> list[str]:
+    """Complète chaque enregistrement avec sa fiche du catalogue.
+
+    Le catalogue fait foi pour l'identité : il remplace l'identité générée ou
+    préservée depuis le manifest précédent. Retourne les fichiers catalogués
+    qui n'ont pas été trouvés sur le disque.
+    """
+
+    for record in records:
+        entry = catalog.get(str(record["relative_path"]))
+        if entry is None:
+            record["catalog_status"] = "missing"
+            record["lifecycle_status"] = None
+            continue
+
+        for field in CATALOG_FIELDS:
+            record[field] = entry[field]
+        record["version"] = str(entry["version"])
+        record["effective_from"] = iso_date(entry["effective_from"])
+        record["effective_until"] = iso_date(entry["effective_until"])
+        record["version_id"] = f"{entry['document_id']}-v{record['version']}"
+        record["identity_resolution"] = "catalog"
+        record.pop("identity_candidates", None)
+        record["catalog_status"] = "matched"
+
+    found_paths = {str(record["relative_path"]) for record in records}
+    return sorted(path for path in catalog if path not in found_paths)
 
 
 def write_manifest(records: list[dict[str, object]], output_path: Path) -> None:
@@ -355,24 +505,43 @@ def parse_args() -> argparse.Namespace:
         default=DEFAULT_OUTPUT_PATH,
         help=f"Fichier JSONL de sortie (défaut : {DEFAULT_OUTPUT_PATH}).",
     )
+    parser.add_argument(
+        "--catalog",
+        type=Path,
+        default=DEFAULT_CATALOG_PATH,
+        help=f"Catalogue YAML des documents (défaut : {DEFAULT_CATALOG_PATH}).",
+    )
     return parser.parse_args()
 
 
 def main() -> int:
-    """Découvre les fichiers source et génère le manifest brouillon."""
+    """Découvre les fichiers source et génère le manifest."""
 
     arguments = parse_args()
     source_dir = arguments.source_dir.resolve()
     output_path = arguments.output.resolve()
+    try:
+        catalog = load_catalog(arguments.catalog.resolve())
+    except ValueError as error:
+        print(error)
+        return 1
+
     previous_records = load_previous_manifest(output_path)
     documents = discover_documents(source_dir)
     records = [build_record(document, source_dir) for document in documents]
     removed_records = compare_with_previous(records, previous_records)
+    absent_files = apply_catalog(records, catalog)
     duplicate_count = mark_duplicates(records)
     write_manifest(records, output_path)
 
     print(f"{len(records)} document(s) inventorié(s).")
-    status_counts = Counter(str(record["status"]) for record in records)
+    uncatalogued = [r["relative_path"] for r in records if r["catalog_status"] == "missing"]
+    print(f"Catalogue : {len(records) - len(uncatalogued)} fiche(s) appliquée(s).")
+    for path in uncatalogued:
+        print(f"  ATTENTION : {path} n'a pas de fiche dans le catalogue.")
+    for path in absent_files:
+        print(f"  ATTENTION : {path} est catalogué mais introuvable sur le disque.")
+    status_counts = Counter(str(record["change_status"]) for record in records)
     status_summary = ", ".join(
         f"{status}={status_counts.get(status, 0)}"
         for status in (
