@@ -222,8 +222,8 @@ def test_catalog_rejects_duplicate_ids_and_dangling_references() -> None:
 
     errors = validate_catalog(entries)
 
-    assert any("document_id en double : HR-011" in error for error in errors)
-    assert any("HR-029, absent du catalogue" in error for error in errors)
+    assert any("Duplicate document_id: HR-011" in error for error in errors)
+    assert any("HR-029, which is not in the catalog" in error for error in errors)
 
 
 def test_archived_document_needs_end_date_and_successor() -> None:
@@ -248,14 +248,14 @@ def test_catalog_rejects_unknown_status_and_inverted_dates() -> None:
     errors = validate_catalog(entries)
 
     assert any("lifecycle_status" in error for error in errors)
-    assert any("antérieure" in error for error in errors)
+    assert any("earlier than" in error for error in errors)
 
 
 def test_invalid_catalog_file_raises(tmp_path) -> None:
     catalog_path = tmp_path / "catalog.yaml"
     catalog_path.write_text("documents:\n  - file: a.pdf\n", encoding="utf-8")
 
-    with pytest.raises(ValueError, match="Catalogue invalide"):
+    with pytest.raises(ValueError, match="Invalid catalog"):
         load_catalog(catalog_path)
 
 
