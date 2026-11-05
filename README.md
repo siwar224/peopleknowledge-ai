@@ -1,6 +1,6 @@
 # PeopleKnowledge AI
 
-Base de projet pour une API RAG destinée à interroger des documents de politiques RH.
+Project base for a RAG API that answers questions about HR policy documents.
 
 ## Structure
 
@@ -12,9 +12,9 @@ peopleknowledge-ai/
 │   │   └── rag/
 │   └── pyproject.toml
 ├── datasets/
-│   ├── source_documents/   # PDF à ajouter par le propriétaire du projet
-│   ├── metadata/            # document_manifest.jsonl à ajouter
-│   └── evaluation/          # rag_questions_gold.jsonl à ajouter
+│   ├── source_documents/   # PDFs to be added by the project owner
+│   ├── metadata/            # document_manifest.jsonl to be added
+│   └── evaluation/          # rag_questions_gold.jsonl to be added
 ├── scripts/
 ├── docs/
 ├── infra/
@@ -23,11 +23,11 @@ peopleknowledge-ai/
 └── README.md
 ```
 
-Les fichiers PDF et JSONL ne sont volontairement pas générés ici. Ajoutez-les ensuite dans les dossiers indiqués.
+The PDF and JSONL files are intentionally not generated here. Add them afterwards to the folders shown above.
 
-## Environnement Python isolé
+## Isolated Python environment
 
-Depuis la racine du projet :
+From the project root:
 
 ```powershell
 py -3.11 -m venv .venv
@@ -36,29 +36,29 @@ python -m pip install --upgrade pip
 python -m pip install -e ".\apps\api[dev]"
 ```
 
-Si PowerShell bloque l'activation, vous pouvez utiliser directement l'interpréteur de l'environnement :
+If PowerShell blocks the activation, you can call the environment's interpreter directly:
 
 ```powershell
 .\.venv\Scripts\python.exe -m pip install -e ".\apps\api[dev]"
 ```
 
-Copiez ensuite `.env.example` vers `.env` et renseignez les secrets nécessaires :
+Then copy `.env.example` to `.env` and fill in the required secrets:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-## Lancer l'API
+## Run the API
 
 ```powershell
 python -m uvicorn app.main:app --app-dir apps/api --reload
 ```
 
-Endpoint de contrôle : `http://127.0.0.1:8000/health`
+Health check endpoint: `http://127.0.0.1:8000/health`
 
-Documentation interactive : `http://127.0.0.1:8000/docs`
+Interactive documentation: `http://127.0.0.1:8000/docs`
 
-## Vérifications développeur
+## Developer checks
 
 ```powershell
 python -m ruff check apps/api

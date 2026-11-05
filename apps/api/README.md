@@ -1,3 +1,3 @@
 # PeopleKnowledge API
 
-Package Python de l'API PeopleKnowledge. Le code applicatif se trouve dans `app/`, et les composants RAG dans `app/rag/`.
+Python package of the PeopleKnowledge API. The application code lives in `app/`, and the RAG components in `app/rag/`.

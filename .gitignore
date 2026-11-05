@@ -7,17 +7,17 @@ __pycache__/
 .coverage
 htmlcov/
 
-# Environnements virtuels
+# Virtual environments
 .venv/
 venv/
 env/
 
-# Secrets et configuration locale
+# Secrets and local configuration
 .env
 .env.*
 !.env.example
 
-# Dataset : les documents, métadonnées et évaluations restent locaux
+# Dataset: documents, metadata and evaluations stay local
 datasets/**
 !datasets/source_documents/
 !datasets/metadata/
@@ -29,7 +29,7 @@ datasets/evaluation/**
 !datasets/metadata/.gitkeep
 !datasets/evaluation/.gitkeep
 
-# Données générées / index locaux
+# Generated data / local indexes
 datasets/processed/
 datasets/indexes/
 *.sqlite3

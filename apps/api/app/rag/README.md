@@ -1,9 +1,9 @@
 # RAG
 
-Ce module accueillera les composants du pipeline RAG :
+This module will hold the components of the RAG pipeline:
 
-- chargement et découpage des documents ;
-- génération des embeddings ;
-- indexation et recherche vectorielle ;
-- construction du contexte et génération de la réponse ;
-- évaluation sur `datasets/evaluation/rag_questions_gold.jsonl`.
+- loading and splitting the documents;
+- generating the embeddings;
+- indexing and vector search;
+- building the context and generating the answer;
+- evaluation on `datasets/evaluation/rag_questions_gold.jsonl`.
