@@ -299,9 +299,11 @@ def _looks_multi_column(lines: list[_Line], body_size: float) -> bool:
         for line in lines:
             if any(x0 < x + gutter and x1 > x for x0, x1 in line.spans):
                 crossing += 1
-            elif any(x1 <= x for _, x1 in line.spans) and any(x0 >= x + gutter for x0, _ in line.spans):
-                split += 1
-        if split >= len(lines) * SPLIT_LINES_RATIO and crossing <= len(lines) * CROSSING_LINES_RATIO:
+            elif line.spans[0][1] <= x and line.spans[-1][0] >= x + gutter:
+                split += 1  # spans are sorted: first char left of the band, last one right of it
+        many_split = split >= len(lines) * SPLIT_LINES_RATIO
+        few_crossing = crossing <= len(lines) * CROSSING_LINES_RATIO
+        if many_split and few_crossing:
             return True
         x += step
     return False

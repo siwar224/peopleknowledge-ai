@@ -8,16 +8,18 @@ a rule written for these documents (that is what the synthetic tests check).
 import json
 import re
 from functools import cache
-from pathlib import Path
 
 import pytest
-from app.rag.parsers import get_parser
-from app.rag.parsers.models import DocumentMetadata, ParsedDocument
+from app.rag.parsers.models import ParsedDocument
 
-ROOT = Path(__file__).resolve().parents[2]
-MANIFEST = ROOT / "datasets" / "metadata" / "document_manifest.jsonl"
-DISCLAIMER_PATTERNS = [r"^document fictif"]  # corpus convention, given as an option
-CSV_OPTIONS = {"id_column": "row_id", "group_by": "department"}
+from scripts.parse_documents import (
+    DEFAULT_CONFIG,
+    PROJECT_ROOT,
+    load_config,
+    parse_record,
+)
+
+MANIFEST = PROJECT_ROOT / "datasets" / "metadata" / "document_manifest.jsonl"
 
 pytestmark = pytest.mark.skipif(not MANIFEST.exists(), reason="corpus not present")
 
@@ -29,12 +31,11 @@ def manifest_records() -> list[dict]:
 
 @cache
 def parsed(version_id: str) -> ParsedDocument:
+    """Parse exactly as scripts/parse_documents.py does: options from the real
+    parsing_config.yaml and from the catalog's ``parsing`` key (via the manifest)."""
+
     record = next(r for r in manifest_records() if r["version_id"] == version_id)
-    options = {"disclaimer_patterns": DISCLAIMER_PATTERNS}
-    if record["extension"] == ".csv":
-        options |= CSV_OPTIONS
-    parser = get_parser(record["extension"], **options)
-    return parser.parse(ROOT / record["source_path"], DocumentMetadata(**record), record["relative_path"])
+    return parse_record(record, load_config(DEFAULT_CONFIG), PROJECT_ROOT)
 
 
 def all_version_ids() -> list[str]:

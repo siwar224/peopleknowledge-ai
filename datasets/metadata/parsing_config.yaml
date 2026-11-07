@@ -1,0 +1,14 @@
+# parsing_config.yaml — réglages du parsing communs à TOUT le corpus
+#
+# Lu par scripts/parse_documents.py. Les parsers ne contiennent aucune règle propre à ce
+# corpus : ses conventions sont données ici, sous forme d'options.
+#
+# Les options propres à UN seul document (ex. id_column d'un CSV) vont dans la clé
+# `parsing` de son entrée dans document_catalog.yaml.
+#
+# Ne jamais indexer ce fichier (règle 1 : rien de datasets/metadata/ n'est indexé).
+
+# Expressions régulières (insensibles à la casse) qui marquent un bloc comme `disclaimer`.
+# Le chunking pourra exclure ces blocs, répétés à l'identique dans chaque document.
+disclaimer_patterns:
+  - "^document fictif"

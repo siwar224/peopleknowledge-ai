@@ -233,3 +233,42 @@ def test_single_page_keeps_its_margin_text(tmp_path: Path) -> None:
     assert "Seul paragraphe." in texts
     assert any("Confidentiel" in text for text in texts)
 
+
+
+COLUMN_TEXT = [f"Ligne {n} de la colonne, texte courant." for n in range(1, 21)]
+
+
+def two_column_pdf(tmp_path: Path, full_width_title: bool = False) -> Path:
+    path = tmp_path / "columns.pdf"
+    pdf = canvas.Canvas(str(path), pagesize=A4)
+    if full_width_title:
+        pdf.setFont("Helvetica-Bold", 16)
+        pdf.drawString(60, 790, "Un titre qui s'étend sur toute la largeur de la page de test")
+    pdf.setFont("Helvetica", 10)
+    for row, text in enumerate(COLUMN_TEXT):
+        y = 750 - row * 14
+        pdf.drawString(60, y, f"Gauche : {text}")
+        pdf.drawString(320, y, f"Droite : {text}")
+    pdf.save()
+    return path
+
+
+def test_two_columns_are_reported_in_the_warnings(tmp_path: Path) -> None:
+    parsed = parse(two_column_pdf(tmp_path))
+
+    assert parsed.warnings == [
+        (
+            "page 1 seems to have several text columns: "
+            "its reading order may be wrong (columns may be interleaved)."
+        )
+    ]
+
+
+def test_two_columns_under_a_full_width_title_are_reported(tmp_path: Path) -> None:
+    parsed = parse(two_column_pdf(tmp_path, full_width_title=True))
+
+    assert any("several text columns" in warning for warning in parsed.warnings)
+
+
+def test_single_column_text_has_no_column_warning(policy_pdf: Path) -> None:
+    assert parse(policy_pdf).warnings == []

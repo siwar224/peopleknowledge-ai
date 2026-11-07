@@ -287,3 +287,28 @@ def test_uncatalogued_file_is_flagged_and_keeps_its_identity() -> None:
     assert record["catalog_status"] == "missing"
     assert record["lifecycle_status"] is None
     assert record["document_id"] == "HR-NEW"
+
+
+def test_parsing_options_are_copied_to_the_manifest() -> None:
+    record = make_record("datasets/source_documents/02/matrix.csv", "hash-m")
+    record["relative_path"] = "02/matrix.csv"
+    entry = make_catalog_entry("02/matrix.csv", "HR-013", parsing={"id_column": "row_id"})
+
+    apply_catalog([record], {"02/matrix.csv": entry})
+
+    assert record["parsing"] == {"id_column": "row_id"}
+
+
+def test_parsing_options_default_to_empty() -> None:
+    record = make_record("datasets/source_documents/02/remote_work_policy_v2.pdf", "hash-a")
+    record["relative_path"] = "02/remote_work_policy_v2.pdf"
+
+    apply_catalog([record], {entry["file"]: entry for entry in make_catalog_pair()})
+
+    assert record["parsing"] == {}
+
+
+def test_catalog_rejects_parsing_that_is_not_a_mapping() -> None:
+    entries = [make_catalog_entry("a.csv", "HR-001", parsing=["row_id"])]
+
+    assert any("parsing must be a mapping" in error for error in validate_catalog(entries))
