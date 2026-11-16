@@ -24,7 +24,7 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from app.rag.evaluation.gold import GoldQuestion, Source, load_gold
+from app.rag.evaluation.gold import GoldQuestion, Source, load_gold, source_of_chunk
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_GOLD = PROJECT_ROOT / "datasets" / "evaluation" / "rag_questions_gold.jsonl"
@@ -46,15 +46,8 @@ def source_index(chunks_dir: Path) -> set[Source]:
     sources: set[Source] = set()
     for path in sorted(chunks_dir.glob("*.jsonl")):
         for line in path.read_text(encoding="utf-8").splitlines():
-            chunk = json.loads(line)
-            document_id = chunk["document"]["document_id"]
-            if chunk["kind"] == "section" and chunk["section_number"]:
-                section = chunk["section_number"]
-            else:  # card or CSV row: the id suffix, without a "-2" part number
-                section = chunk["chunk_id"].split("#", 1)[1]
-                if chunk["part"] > 1:
-                    section = section.rsplit("-", 1)[0]
-            sources.add(Source(document_id=document_id, section=section))
+            if line.strip():
+                sources.add(source_of_chunk(json.loads(line)))
     return sources
 
 

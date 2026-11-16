@@ -39,6 +39,22 @@ class Source(BaseModel):
     section: str = Field(min_length=1)  # "4.2", "RW-ENG-008" or "card"
 
 
+def source_of_chunk(chunk: dict) -> Source:
+    """The source a chunk belongs to, from its JSON form (chunk file line or Qdrant payload).
+
+    A section chunk -> its section number; a card or CSV row -> its id suffix
+    ("card", "RW-ENG-008"); the "-2" of a second part is dropped.
+    """
+
+    document_id = chunk["document"]["document_id"]
+    if chunk["kind"] == "section" and chunk.get("section_number"):
+        return Source(document_id=document_id, section=chunk["section_number"])
+    section = chunk["chunk_id"].split("#", 1)[1]
+    if chunk.get("part", 1) > 1:
+        section = section.rsplit("-", 1)[0]
+    return Source(document_id=document_id, section=section)
+
+
 class UserContext(BaseModel):
     """Who asks: some answers depend on it. Values are company_profile.yaml ids."""
 
