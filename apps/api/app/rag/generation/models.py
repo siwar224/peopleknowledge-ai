@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -56,3 +58,80 @@ class BuiltContext(BaseModel):
         if bool(self.text) != bool(self.sources):
             raise ValueError("text and sources must either both be empty or both be present.")
         return self
+
+
+class PromptMessage(BaseModel):
+    """One provider-neutral chat message for an OpenAI-compatible LLM."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    role: Literal["system", "user"]
+    content: str = Field(min_length=1)
+
+
+class BuiltPrompt(BaseModel):
+    """The stable instructions and dynamic evidence sent to the generator."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    messages: list[PromptMessage]
+    allowed_source_ids: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def check_message_order(self) -> BuiltPrompt:
+        roles = [message.role for message in self.messages]
+        if roles != ["system", "user"]:
+            raise ValueError(
+                "a prompt must contain exactly one system message then one user message."
+            )
+        if len(self.allowed_source_ids) != len(set(self.allowed_source_ids)):
+            raise ValueError("allowed_source_ids must not contain duplicates.")
+        invalid = [
+            source_id
+            for source_id in self.allowed_source_ids
+            if not re.fullmatch(r"S[1-9]\d*", source_id)
+        ]
+        if invalid:
+            raise ValueError(f"invalid allowed source id(s): {invalid}.")
+        return self
+
+
+AnswerStatus = Literal["complete", "partial", "not_found"]
+_INLINE_CITATION = re.compile(r"\[(S[1-9]\d*)\]")
+
+
+class GeneratedAnswer(BaseModel):
+    """Validated structured content returned by the language model."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    status: AnswerStatus
+    answer: str = Field(min_length=1)
+    citations: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def check_citations(self) -> GeneratedAnswer:
+        if len(self.citations) != len(set(self.citations)):
+            raise ValueError("citations must not contain duplicates.")
+        invalid = [
+            citation for citation in self.citations if not re.fullmatch(r"S[1-9]\d*", citation)
+        ]
+        if invalid:
+            raise ValueError(f"invalid citation label(s): {invalid}.")
+        inline = set(_INLINE_CITATION.findall(self.answer))
+        listed = set(self.citations)
+        if not inline.issubset(listed):
+            raise ValueError("every inline citation must also appear in the citations list.")
+        if self.status in {"complete", "partial"} and not self.citations:
+            raise ValueError(f"a {self.status} answer needs at least one citation.")
+        return self
+
+
+class GenerationResult(BaseModel):
+    """A validated answer plus operational metadata from the generator."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    answer: GeneratedAnswer
+    model: str = Field(min_length=1)
+    elapsed_ms: int = Field(ge=0)

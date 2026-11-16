@@ -72,7 +72,8 @@ def test_page_and_health_are_served(api: TestClient) -> None:
     page = api.get("/")
     assert page.status_code == 200
     assert "text/html" in page.headers["content-type"]
-    assert "/api/search" in page.text
+    assert "/api/answer" in page.text
+    assert "PeopleKnowledge · Assistant RH" in page.text
 
 
 def test_search_returns_ranked_results_with_their_source(api: TestClient) -> None:

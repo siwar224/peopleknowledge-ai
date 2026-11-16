@@ -10,6 +10,7 @@ import os
 from functools import lru_cache
 from pathlib import Path
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 PROJECT_ROOT = Path(__file__).resolve().parents[3]
@@ -33,7 +34,16 @@ class Settings(BaseSettings):
     # Never download a model from the API: a missing model is an error, not a 2 GB surprise.
     hf_hub_offline: bool = True
 
+    # Answer generation through a local OpenAI-compatible llama.cpp server.
+    llm_base_url: str = "http://localhost:8080/v1"
+    llm_api_key: str = "local"
+    llm_model: str = "qwen2.5-1.5b-instruct"
+    llm_temperature: float = Field(default=0.1, ge=0, le=2)
+    llm_max_tokens: int = Field(default=300, ge=1)
+    llm_timeout_seconds: float = Field(default=120.0, gt=0)
+
     gold_path: Path = PROJECT_ROOT / "datasets" / "evaluation" / "rag_questions_gold.jsonl"
+    company_profile_path: Path = PROJECT_ROOT / "datasets" / "metadata" / "company_profile.yaml"
 
     def apply_hugging_face_environment(self) -> None:
         """Must run BEFORE sentence-transformers is imported."""

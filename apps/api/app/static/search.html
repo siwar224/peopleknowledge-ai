@@ -3,324 +3,256 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PeopleKnowledge · Test de recherche</title>
+<title>PeopleKnowledge · Assistant RH</title>
 <style>
   :root {
-    --bg: #f6f7f9; --surface: #ffffff; --surface-2: #f0f2f5; --border: #dfe3e8;
-    --text: #1c2430; --muted: #5d6b7a; --accent: #2f5bd3; --accent-text: #ffffff;
-    --ok: #1f8a4c; --ok-bg: #e5f5ec; --bad: #c2362f; --bad-bg: #fbe9e7;
-    --info: #2f5bd3; --info-bg: #e8eefc; --warn-bg: #fff6df; --warn: #8a5a00;
-    --radius: 10px; --shadow: 0 1px 2px rgba(16, 24, 40, .06);
-  }
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --bg: #12161c; --surface: #1a2029; --surface-2: #222a35; --border: #2e3846;
-      --text: #e6eaf0; --muted: #9aa7b6; --accent: #7a9bff; --accent-text: #0d1220;
-      --ok: #5fd08f; --ok-bg: #173225; --bad: #ff8a80; --bad-bg: #3a1d1b;
-      --info: #9db4ff; --info-bg: #1e2a48; --warn-bg: #3a2f14; --warn: #f3c969;
-      --shadow: none;
-    }
+    --ink: #17233b; --muted: #68748a; --line: #dfe5ed; --paper: #fff; --canvas: #f3f6f8;
+    --navy: #172b4d; --navy-2: #24436f; --mint: #31b489; --mint-dark: #178269;
+    --mint-soft: #e8f7f2; --blue-soft: #edf4ff; --amber: #a86108;
+    --amber-soft: #fff3d8; --red: #b83c4b; --red-soft: #fff0f2;
+    --shadow: 0 18px 50px rgba(23,43,77,.09); --shadow-soft: 0 6px 22px rgba(23,43,77,.07);
   }
   * { box-sizing: border-box; }
+  html { min-height: 100%; background: var(--canvas); }
   body {
-    margin: 0; background: var(--bg); color: var(--text);
-    font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    min-height: 100vh; margin: 0; color: var(--ink);
+    font: 15px/1.55 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    background: radial-gradient(circle at 6% 0%, rgba(49,180,137,.10), transparent 28rem),
+      radial-gradient(circle at 98% 10%, rgba(68,113,180,.10), transparent 30rem), var(--canvas);
   }
-  main { max-width: 920px; margin: 0 auto; padding: 24px 16px 64px; }
-  header h1 { margin: 0; font-size: 22px; }
-  header p { margin: 4px 0 0; color: var(--muted); }
-  .panel {
-    background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-    box-shadow: var(--shadow); padding: 16px; margin-top: 16px;
+  button, textarea, select, input { font: inherit; }
+  button, select, input[type="checkbox"] { cursor: pointer; }
+  button:focus-visible, textarea:focus-visible, select:focus-visible, input:focus-visible {
+    outline: 3px solid rgba(49,180,137,.25); outline-offset: 2px;
   }
-  label.title { display: block; font-weight: 600; margin-bottom: 6px; }
-  textarea, select {
-    width: 100%; font: inherit; color: var(--text); background: var(--surface-2);
-    border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px;
+  .topbar {
+    height: 72px; display: flex; align-items: center; justify-content: space-between;
+    max-width: 1280px; margin: auto; padding: 0 28px;
   }
-  textarea { min-height: 72px; resize: vertical; }
-  textarea:focus, select:focus, button:focus-visible, input:focus-visible {
-    outline: 2px solid var(--accent); outline-offset: 1px;
+  .brand { display: flex; align-items: center; gap: 12px; }
+  .brand-mark {
+    width: 40px; height: 40px; display: grid; place-items: center; border-radius: 12px;
+    color: white; font-weight: 800; background: linear-gradient(145deg,var(--navy),var(--navy-2));
+    box-shadow: 0 8px 18px rgba(23,43,77,.20);
   }
-  .row { display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; margin-top: 12px; }
-  .row .grow { flex: 1; }
-  .inline { display: flex; align-items: center; gap: 8px; color: var(--muted); }
-  .inline select { width: auto; padding: 6px 8px; }
-  button.primary {
-    font: inherit; font-weight: 600; border: 0; border-radius: 8px; cursor: pointer;
-    background: var(--accent); color: var(--accent-text); padding: 10px 20px;
+  .brand-name { font-weight: 780; letter-spacing: -.025em; font-size: 17px; }
+  .brand-subtitle { color: var(--muted); font-size: 12px; margin-top: -2px; }
+  .local-pill {
+    display: flex; align-items: center; gap: 8px; color: var(--mint-dark); font-size: 13px;
+    font-weight: 700; background: var(--mint-soft); border: 1px solid #cdeee3;
+    border-radius: 999px; padding: 7px 12px;
   }
-  button.primary:disabled { opacity: .6; cursor: wait; }
-  .hint { color: var(--muted); font-size: 13px; margin-top: 8px; }
-  .gold-card { margin-top: 12px; padding: 12px; border-radius: 8px; background: var(--surface-2); }
-  .gold-card .answer { margin: 6px 0 10px; }
-  .chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+  .local-pill::before {
+    content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--mint);
+    box-shadow: 0 0 0 4px rgba(49,180,137,.13);
+  }
+  .workspace {
+    max-width: 1280px; margin: auto; padding: 12px 28px 56px;
+    display: grid; grid-template-columns: 330px minmax(0,1fr); gap: 24px; align-items: start;
+  }
+  .sidebar { display: grid; gap: 16px; position: sticky; top: 18px; }
+  .card {
+    background: rgba(255,255,255,.94); border: 1px solid rgba(214,222,232,.92);
+    border-radius: 16px; box-shadow: var(--shadow-soft);
+  }
+  .side-card { padding: 18px; }
+  .eyebrow {
+    margin: 0 0 5px; color: var(--mint-dark); font-size: 11px; font-weight: 800;
+    letter-spacing: .11em; text-transform: uppercase;
+  }
+  h2, h3, p { margin-top: 0; }
+  .side-card h2 { margin-bottom: 4px; font-size: 16px; }
+  .side-copy { margin: 0 0 14px; color: var(--muted); font-size: 13px; }
+  label.field { display: grid; gap: 6px; margin-top: 11px; }
+  label.field > span { color: #445067; font-size: 12px; font-weight: 700; }
+  select, input[type="number"], input[type="date"] {
+    width: 100%; min-height: 40px; border: 1px solid var(--line); border-radius: 9px;
+    background: #fbfcfd; color: var(--ink); padding: 8px 10px;
+  }
+  .two-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .check-row { display: flex; gap: 9px; margin-top: 14px; color: var(--muted); font-size: 12.5px; }
+  .check-row input { margin-top: 3px; accent-color: var(--mint-dark); }
+  .gold-details { margin-top: 12px; border-top: 1px solid var(--line); padding-top: 12px; font-size: 12.5px; }
+  .gold-details p { margin-bottom: 9px; }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; align-items: center; }
   .chip {
-    font-size: 12.5px; padding: 2px 8px; border-radius: 999px; white-space: nowrap;
-    font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+    display: inline-flex; border-radius: 999px; padding: 3px 8px;
+    font: 700 11px/1.4 ui-monospace,"Cascadia Mono",Consolas,monospace;
+    background: #f0f3f7; color: #526078;
   }
-  .chip.expected { background: var(--ok-bg); color: var(--ok); }
-  .chip.acceptable { background: var(--info-bg); color: var(--info); }
-  .chip.forbidden { background: var(--bad-bg); color: var(--bad); }
-  .chip.neutral { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
-  .verdict { margin-top: 16px; padding: 10px 14px; border-radius: 8px; font-weight: 600; }
-  .verdict.ok { background: var(--ok-bg); color: var(--ok); }
-  .verdict.bad { background: var(--bad-bg); color: var(--bad); }
-  .verdict.warn { background: var(--warn-bg); color: var(--warn); }
-  .status { margin-top: 16px; color: var(--muted); min-height: 22px; }
-  .error { background: var(--bad-bg); color: var(--bad); padding: 10px 14px; border-radius: 8px; }
+  .chip.expected { background: var(--mint-soft); color: var(--mint-dark); }
+  .chip.acceptable { background: var(--blue-soft); color: #38659e; }
+  .chip.forbidden { background: var(--red-soft); color: var(--red); }
+  .main-column { min-width: 0; }
+  .hero { padding: 25px 4px 18px; }
+  .hero h1 {
+    margin: 0; font-size: clamp(29px,4vw,47px); line-height: 1.07;
+    letter-spacing: -.045em; color: var(--navy);
+  }
+  .hero p { max-width: 690px; margin: 13px 0 0; color: var(--muted); font-size: 16px; }
+  .ask-card { padding: 8px; border-radius: 24px; box-shadow: var(--shadow); }
+  textarea {
+    width: 100%; min-height: 112px; resize: vertical; border: 0; border-radius: 18px;
+    color: var(--ink); background: transparent; padding: 17px 18px 8px; font-size: 17px;
+  }
+  textarea::placeholder { color: #97a2b4; }
+  textarea:focus { outline: none; }
+  .ask-actions {
+    display: flex; align-items: center; gap: 12px; padding: 8px 10px 10px 16px;
+    border-top: 1px solid #eef1f5;
+  }
+  .ask-hint { color: var(--muted); font-size: 12px; flex: 1; }
+  .primary {
+    min-height: 46px; border: 0; border-radius: 13px; padding: 0 21px; color: white;
+    background: linear-gradient(135deg,var(--navy),var(--navy-2)); font-weight: 750;
+    box-shadow: 0 8px 20px rgba(23,43,77,.20); transition: .18s ease;
+  }
+  .primary:hover { transform: translateY(-1px); box-shadow: 0 11px 25px rgba(23,43,77,.24); }
+  .primary:disabled { opacity: .65; cursor: wait; transform: none; }
+  .status-line { min-height: 42px; padding: 14px 4px 0; color: var(--muted); font-size: 13px; }
   .spinner {
-    display: inline-block; width: 14px; height: 14px; margin-right: 8px; vertical-align: -2px;
-    border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%;
+    display: inline-block; width: 14px; height: 14px; margin-right: 9px; vertical-align: -2px;
+    border: 2px solid #d4dbe5; border-top-color: var(--mint-dark); border-radius: 50%;
     animation: spin .8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-  @media (prefers-reduced-motion: reduce) { .spinner { animation: none; } }
-  .result { display: grid; grid-template-columns: 40px 1fr; gap: 12px; }
-  .rank {
-    width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center;
-    background: var(--surface-2); font-weight: 700; color: var(--muted);
+  .answer-card { overflow: hidden; margin-top: 10px; }
+  .answer-top {
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    padding: 18px 22px; border-bottom: 1px solid var(--line); background: #fbfcfd;
   }
-  .result.expected { border-color: var(--ok); }
-  .result.forbidden { border-color: var(--bad); }
-  .result.expected .rank { background: var(--ok-bg); color: var(--ok); }
-  .result.forbidden .rank { background: var(--bad-bg); color: var(--bad); }
-  .meta { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
-  .meta .id { font-family: ui-monospace, "Cascadia Mono", Consolas, monospace; font-size: 13px; }
-  .score { display: flex; align-items: center; gap: 8px; margin-left: auto; color: var(--muted); font-size: 13px; }
-  .bar { width: 80px; height: 6px; border-radius: 3px; background: var(--surface-2); overflow: hidden; }
-  .bar span { display: block; height: 100%; background: var(--accent); }
-  .doc { margin-top: 6px; font-weight: 600; }
-  .path { color: var(--muted); font-size: 13.5px; }
-  .content { margin-top: 8px; white-space: pre-line; }
-  .content.clamped { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; }
-  .toggle {
-    background: none; border: 0; padding: 0; margin-top: 4px; color: var(--accent);
-    font: inherit; font-size: 13.5px; cursor: pointer;
+  .status-badge { border-radius: 999px; padding: 5px 10px; font-size: 12px; font-weight: 800; }
+  .status-badge.complete { color: var(--mint-dark); background: var(--mint-soft); }
+  .status-badge.partial { color: var(--amber); background: var(--amber-soft); }
+  .status-badge.not_found { color: var(--red); background: var(--red-soft); }
+  .timing { color: var(--muted); font-size: 12px; text-align: right; }
+  .answer-body { padding: 26px 28px; }
+  .answer-label { color: var(--muted); font-size: 12px; font-weight: 800; text-transform: uppercase; letter-spacing: .09em; }
+  .answer-text { margin: 10px 0 0; font-size: 18px; line-height: 1.7; white-space: pre-line; }
+  .source-section { padding: 0 28px 26px; }
+  .source-section h3 { font-size: 14px; margin-bottom: 11px; }
+  .source-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 10px; }
+  .source-card { padding: 13px 14px; border: 1px solid var(--line); border-radius: 11px; background: #fbfcfd; }
+  .source-card .source-id { color: var(--mint-dark); font-weight: 850; font-size: 12px; }
+  .source-card strong { display: block; margin-top: 4px; font-size: 13.5px; }
+  .source-meta { margin-top: 4px; color: var(--muted); font-size: 12px; }
+  .verdict { margin-top: 14px; padding: 13px 16px; border-radius: 11px; font-size: 13px; font-weight: 700; }
+  .verdict.ok { color: var(--mint-dark); background: var(--mint-soft); }
+  .verdict.warn { color: var(--amber); background: var(--amber-soft); }
+  .verdict.bad { color: var(--red); background: var(--red-soft); }
+  .diagnostics { margin-top: 16px; overflow: hidden; }
+  .diagnostics summary { padding: 15px 18px; cursor: pointer; color: #43516a; font-weight: 750; list-style: none; }
+  .diagnostics summary::-webkit-details-marker { display: none; }
+  .diagnostics summary::after { content: "+"; float: right; color: var(--muted); font-size: 20px; }
+  .diagnostics[open] summary::after { content: "−"; }
+  .retrieval-list { display: grid; gap: 9px; padding: 0 14px 14px; }
+  .retrieval-item {
+    display: grid; grid-template-columns: 34px minmax(0,1fr) auto; gap: 11px;
+    padding: 12px; border: 1px solid var(--line); border-radius: 11px; background: #fbfcfd;
   }
-  footer { margin-top: 32px; color: var(--muted); font-size: 13px; }
-  @media (max-width: 560px) {
-    .result { grid-template-columns: 1fr; }
-    .score { margin-left: 0; width: 100%; }
+  .rank { width: 31px; height: 31px; border-radius: 9px; display: grid; place-items: center; color: var(--navy); background: var(--blue-soft); font-weight: 850; font-size: 12px; }
+  .retrieval-title { font-size: 13px; font-weight: 750; }
+  .retrieval-path { color: var(--muted); font-size: 11.5px; }
+  .retrieval-content { margin-top: 7px; color: #47546a; font-size: 12px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; white-space: pre-line; }
+  .score { color: var(--muted); font: 700 11px ui-monospace,monospace; }
+  .error { margin-top: 10px; padding: 15px 17px; border: 1px solid #ffd5da; border-radius: 13px; color: var(--red); background: var(--red-soft); font-weight: 650; }
+  .empty-state { margin-top: 18px; padding: 28px; text-align: center; color: var(--muted); border: 1px dashed #ccd5e1; border-radius: 16px; }
+  .empty-icon { width: 48px; height: 48px; margin: 0 auto 12px; display: grid; place-items: center; border-radius: 15px; color: var(--navy); background: var(--blue-soft); font-size: 21px; }
+  footer { margin-top: 24px; padding: 0 5px; color: var(--muted); font-size: 11.5px; }
+  [hidden] { display: none !important; }
+  @media (max-width: 900px) {
+    .workspace { grid-template-columns: 1fr; }
+    .sidebar { position: static; grid-template-columns: 1fr 1fr; }
+    .hero { padding-top: 12px; }
   }
+  @media (max-width: 640px) {
+    .topbar { padding: 0 16px; } .brand-subtitle { display: none; }
+    .workspace { padding: 4px 14px 38px; } .sidebar { grid-template-columns: 1fr; }
+    .hero h1 { font-size: 31px; }
+    .ask-actions { align-items: stretch; flex-direction: column; padding: 10px; }
+    .primary { width: 100%; } .source-grid { grid-template-columns: 1fr; }
+    .answer-body, .source-section { padding-left: 19px; padding-right: 19px; }
+    .retrieval-item { grid-template-columns: 32px minmax(0,1fr); } .score { grid-column: 2; }
+  }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } .spinner { animation: none; } }
 </style>
 </head>
 <body>
-<main>
-  <header>
-    <h1>PeopleKnowledge · Test de recherche</h1>
-    <p>Recherche sémantique (bge-m3 + Qdrant) dans le corpus du lot 1. Aucune réponse rédigée : seulement les passages retrouvés.</p>
-  </header>
-
-  <section class="panel">
-    <label class="title" for="gold">Tester une question gold</label>
-    <select id="gold"><option value="">Chargement des questions…</option></select>
-    <div id="gold-card" class="gold-card" hidden></div>
+<header class="topbar">
+  <div class="brand"><div class="brand-mark">PK</div><div><div class="brand-name">PeopleKnowledge</div><div class="brand-subtitle">NovaTech Solutions · Assistant interne</div></div></div>
+  <div class="local-pill">IA locale</div>
+</header>
+<main class="workspace">
+  <aside class="sidebar" aria-label="Configuration">
+    <section class="card side-card">
+      <p class="eyebrow">Évaluation</p><h2>Question de référence</h2>
+      <p class="side-copy">Chargez un scénario gold ou écrivez votre propre question.</p>
+      <label class="field" for="gold"><span>Scénario</span><select id="gold"><option value="">Chargement…</option></select></label>
+      <div id="gold-details" class="gold-details" hidden></div>
+    </section>
+    <section class="card side-card">
+      <p class="eyebrow">Personnalisation</p><h2>Profil de l’employé</h2>
+      <p class="side-copy">Ces informations permettent d’appliquer les règles adaptées.</p>
+      <label class="field" for="department"><span>Département</span><select id="department"></select></label>
+      <label class="field" for="job-family"><span>Poste</span><select id="job-family"></select></label>
+      <label class="field" for="employment-type"><span>Type de contrat</span><select id="employment-type"></select></label>
+      <div class="two-cols">
+        <label class="field" for="probation"><span>Période d’essai</span><select id="probation"><option value="">Non renseigné</option><option value="true">Oui</option><option value="false">Non</option></select></label>
+        <label class="field" for="seniority"><span>Ancienneté</span><input id="seniority" type="number" min="0" placeholder="Années"></label>
+      </div>
+      <div class="two-cols">
+        <label class="field" for="reference-date"><span>Date de référence</span><input id="reference-date" type="date"></label>
+        <label class="field" for="limit"><span>Passages analysés</span><select id="limit"><option selected>5</option><option>10</option><option>15</option><option>20</option></select></label>
+      </div>
+      <label class="check-row"><input type="checkbox" id="archived"><span>Inclure les anciennes versions pour une question historique</span></label>
+    </section>
+  </aside>
+  <section class="main-column">
+    <div class="hero"><p class="eyebrow">Politiques RH · réponses sourcées</p><h1>Votre référentiel RH,<br>en clair.</h1><p>Posez une question en langage naturel. L’assistant cherche les règles pertinentes, rédige une réponse et affiche les documents utilisés.</p></div>
+    <form id="form" class="card ask-card">
+      <textarea id="question" required placeholder="Ex. : Je suis en période d’essai, combien de jours de congé puis-je poser ?" aria-label="Votre question"></textarea>
+      <div class="ask-actions"><span class="ask-hint">Entrée pour envoyer · Maj + Entrée pour une nouvelle ligne</span><button class="primary" id="submit" type="submit">Obtenir une réponse</button></div>
+    </form>
+    <div id="status" class="status-line" role="status" aria-live="polite"></div><div id="error"></div>
+    <section id="answer-card" class="card answer-card" hidden aria-live="polite">
+      <div class="answer-top"><span id="answer-status" class="status-badge"></span><span id="timing" class="timing"></span></div>
+      <div class="answer-body"><div class="answer-label">Réponse</div><p id="answer-text" class="answer-text"></p></div>
+      <div class="source-section"><h3>Sources utilisées</h3><div id="sources" class="source-grid"></div><div id="verdict"></div></div>
+    </section>
+    <details id="diagnostics" class="card diagnostics" hidden><summary>Voir les passages retrouvés</summary><div id="retrieval-results" class="retrieval-list"></div></details>
+    <div id="empty-state" class="empty-state"><div class="empty-icon">⌕</div><strong>Une réponse vérifiable, pas une supposition.</strong><div>Chaque réponse est construite à partir des documents RH disponibles.</div></div>
+    <footer>Corpus et entreprise fictifs. Cette interface ne présente pas du droit tunisien. L’index Qdrant local ne peut être ouvert que par un programme à la fois.</footer>
   </section>
-
-  <form id="form" class="panel">
-    <label class="title" for="question">Votre question</label>
-    <textarea id="question" placeholder="Ex. : Est-ce que je peux poser des congés pendant ma période d'essai ?" required></textarea>
-    <div class="row">
-      <label class="inline">Résultats
-        <select id="limit"><option>3</option><option selected>5</option><option>10</option></select>
-      </label>
-      <label class="inline"><input type="checkbox" id="archived"> Inclure les documents archivés</label>
-      <span class="grow"></span>
-      <button class="primary" id="submit" type="submit">Rechercher</button>
-    </div>
-    <p class="hint">Entrée pour lancer la recherche, Maj + Entrée pour aller à la ligne. La première recherche charge le modèle (jusqu'à une minute), les suivantes prennent moins d'une seconde.</p>
-  </form>
-
-  <div id="status" class="status" role="status" aria-live="polite"></div>
-  <div id="verdict"></div>
-  <div id="results"></div>
-
-  <footer>
-    Score = similarité cosinus entre la question et le chunk (1 = même sens).
-    Pendant que cette page tourne, l'index local est ouvert par l'API : arrêtez-la avant de relancer <code>index_chunks.py</code>.
-  </footer>
 </main>
-
 <script>
-const CATEGORY_LABELS = {
-  direct: "Règle directe", exception_elsewhere: "Exception ailleurs", csv_only: "Uniquement dans le CSV",
-  version_conflict: "Conflit de versions", history: "Historique", vocabulary: "Vocabulaire familier",
-  multi_source: "Plusieurs sources", unanswerable: "Sans réponse",
-};
-const $ = (id) => document.getElementById(id);
-let goldById = {};
-let currentGold = null;
-
-const key = (source) => `${source.document_id} §${source.section}`;
-
-function el(tag, attributes = {}, ...children) {
-  const node = document.createElement(tag);
-  for (const [name, value] of Object.entries(attributes)) {
-    if (name === "class") node.className = value; else node.setAttribute(name, value);
-  }
-  for (const child of children) node.append(child);
-  return node;
-}
-
-function chips(label, sources, kind) {
-  const box = el("div", { class: "chips" }, el("span", { class: "hint" }, label));
-  if (!sources.length) box.append(el("span", { class: "chip neutral" }, "aucune"));
-  for (const source of sources) box.append(el("span", { class: `chip ${kind}` }, key(source)));
-  return box;
-}
-
-async function loadGold() {
-  const select = $("gold");
-  try {
-    const response = await fetch("/api/gold");
-    const questions = await response.json();
-    select.replaceChildren(el("option", { value: "" }, `Choisir parmi ${questions.length} questions…`));
-    const groups = {};
-    for (const q of questions) {
-      goldById[q.id] = q;
-      groups[q.category] ??= el("optgroup", { label: CATEGORY_LABELS[q.category] || q.category });
-      groups[q.category].append(el("option", { value: q.id }, `${q.id} · ${q.question}`));
-    }
-    Object.values(groups).forEach((group) => select.append(group));
-  } catch {
-    select.replaceChildren(el("option", { value: "" }, "Questions gold indisponibles"));
-  }
-}
-
-function showGold(q) {
-  const card = $("gold-card");
-  currentGold = q;
-  if (!q) { card.hidden = true; return; }
-  card.replaceChildren(
-    el("div", { class: "chips" },
-      el("span", { class: "chip neutral" }, CATEGORY_LABELS[q.category] || q.category),
-      el("span", { class: "chip neutral" }, q.difficulty)),
-    el("div", { class: "answer" }, el("strong", {}, "Réponse attendue : "), q.expected_answer),
-    chips("Attendues :", q.expected_sources, "expected"),
-    chips("Acceptables :", q.acceptable_sources, "acceptable"),
-    chips("Interdites :", q.forbidden_sources, "forbidden"),
-  );
-  card.hidden = false;
-}
-
-function roleOf(source) {
-  if (!currentGold) return null;
-  const k = key(source);
-  if (currentGold.expected_sources.some((s) => key(s) === k)) return "expected";
-  if (currentGold.acceptable_sources.some((s) => key(s) === k)) return "acceptable";
-  if (currentGold.forbidden_sources.some((s) => key(s) === k)) return "forbidden";
-  return null;
-}
-
-const ROLE_LABELS = { expected: "✓ Attendue", acceptable: "Acceptable", forbidden: "✗ Interdite" };
-
-function renderResult(result) {
-  const role = roleOf(result.source);
-  const head = result.prefix.split(" > ");
-  const content = el("div", { class: "content clamped" }, result.content);
-  const toggle = el("button", { class: "toggle", type: "button" }, "Voir tout");
-  toggle.addEventListener("click", () => {
-    const clamped = content.classList.toggle("clamped");
-    toggle.textContent = clamped ? "Voir tout" : "Réduire";
-  });
-  const meta = el("div", { class: "meta" },
-    el("span", { class: "id" }, result.chunk_id),
-    el("span", { class: `chip ${result.lifecycle_status === "active" ? "acceptable" : "forbidden"}` },
-      result.lifecycle_status === "active" ? "actif" : "archivé"),
-  );
-  if (role) meta.append(el("span", { class: `chip ${role}` }, ROLE_LABELS[role]));
-  const bar = el("span", {});
-  bar.style.width = `${Math.max(0, Math.min(1, result.score)) * 100}%`;
-  meta.append(el("span", { class: "score" }, el("span", { class: "bar" }, bar), result.score.toFixed(3)));
-  const pages = result.pages.length ? ` · p. ${result.pages.join(", ")}` : "";
-  const body = el("div", {},
-    meta,
-    el("div", { class: "doc" }, head[0]),
-    el("div", { class: "path" }, (head.slice(1).join(" › ") || "Fiche du document") + pages),
-    content,
-  );
-  if (result.content.length > 280) body.append(toggle);
-  return el("article", { class: `panel result ${role || ""}` }, el("div", { class: "rank" }, String(result.rank)), body);
-}
-
-function renderVerdict(results) {
-  const box = $("verdict");
-  box.replaceChildren();
-  if (!currentGold) return;
-  const found = results.map((r) => roleOf(r.source));
-  const forbidden = found.filter((r) => r === "forbidden").length;
-  let message, kind;
-  if (currentGold.category === "unanswerable") {
-    message = "Question sans réponse dans le corpus : les passages ci-dessous ne doivent PAS servir à inventer une réponse.";
-    kind = "warn";
-  } else {
-    const ranks = currentGold.expected_sources.map((s) => {
-      const index = results.findIndex((r) => key(r.source) === key(s));
-      return index === -1 ? null : index + 1;
-    });
-    const missing = ranks.filter((r) => r === null).length;
-    if (!missing) {
-      message = `Source${ranks.length > 1 ? "s" : ""} attendue${ranks.length > 1 ? "s" : ""} trouvée${ranks.length > 1 ? "s" : ""} au rang ${ranks.join(", ")}.`;
-      kind = Math.max(...ranks) <= 3 ? "ok" : "warn";  // found, and in the top 3
-    } else {
-      message = `${missing} source(s) attendue(s) absente(s) des ${results.length} résultats.`;
-      kind = "bad";
-    }
-  }
-  if (forbidden) { message += ` ${forbidden} source(s) interdite(s) remontée(s).`; kind = "bad"; }
-  box.append(el("div", { class: `verdict ${kind}` }, message));
-}
-
-async function runSearch() {
-  const question = $("question").value.trim();
-  if (question.length < 2) return;
-  const button = $("submit");
-  button.disabled = true;
-  $("results").replaceChildren();
-  $("verdict").replaceChildren();
-  $("status").replaceChildren(el("span", { class: "spinner" }), "Recherche en cours…");
-  try {
-    const response = await fetch("/api/search", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, limit: Number($("limit").value), include_archived: $("archived").checked }),
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(typeof data.detail === "string" ? data.detail : JSON.stringify(data.detail));
-    $("status").textContent = `${data.results.length} passage(s) en ${data.elapsed_ms} ms` +
-      (data.include_archived ? " · documents archivés inclus" : " · documents archivés exclus");
-    renderVerdict(data.results);
-    $("results").replaceChildren(...data.results.map(renderResult));
-  } catch (error) {
-    let message = `Erreur : ${error.message}`;
-    if (error.message.includes("already accessed")) {
-      message = "L'index Qdrant est déjà ouvert par un autre programme (un autre serveur, " +
-        "search_chunks.py ou index_chunks.py). En mode local, un seul programme peut l'ouvrir : " +
-        "arrêtez l'autre puis relancez la recherche (inutile de redémarrer ce serveur).";
-    }
-    $("status").replaceChildren(el("div", { class: "error" }, message));
-  } finally {
-    button.disabled = false;
-  }
-}
-
-$("form").addEventListener("submit", (event) => { event.preventDefault(); runSearch(); });
-$("question").addEventListener("keydown", (event) => {
-  if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); runSearch(); }
-});
-$("question").addEventListener("input", () => {
-  if (currentGold && $("question").value.trim() !== currentGold.question) { $("gold").value = ""; showGold(null); }
-});
-$("gold").addEventListener("change", () => {
-  const q = goldById[$("gold").value];
-  showGold(q || null);
-  if (!q) return;
-  $("question").value = q.question;
-  $("archived").checked = q.category === "history";
-  runSearch();
-});
-loadGold();
+const CATEGORY_LABELS={direct:"Règle directe",exception_elsewhere:"Exception",csv_only:"Matrice métier",version_conflict:"Versions",history:"Historique",vocabulary:"Vocabulaire",multi_source:"Multi-sources",unanswerable:"Sans réponse"};
+const STATUS_LABELS={complete:"Réponse complète",partial:"Réponse partielle",not_found:"Information introuvable"};
+const $=(id)=>document.getElementById(id);
+const state={goldById:{},currentGold:null,profileOptions:null};
+function el(tag,attributes={},...children){const node=document.createElement(tag);for(const[name,value]of Object.entries(attributes)){if(name==="class")node.className=value;else if(name==="hidden")node.hidden=value;else node.setAttribute(name,value);}for(const child of children)if(child!==null&&child!==undefined)node.append(child);return node;}
+const sourceKey=(source)=>`${source.document_id} §${source.section}`;
+const option=(value,label)=>el("option",{value},label);
+function populateSelect(id,options,emptyLabel="Non renseigné"){const select=$(id);select.replaceChildren(option("",emptyLabel));for(const item of options)select.append(option(item.id,item.label));}
+function filterJobs(){if(!state.profileOptions)return;const selected=$("job-family").value;const department=$("department").value;const jobs=state.profileOptions.job_families.filter((job)=>!department||job.department===department||job.department==="all");populateSelect("job-family",jobs);if(jobs.some((job)=>job.id===selected))$("job-family").value=selected;}
+async function loadData(){const[goldResponse,profileResponse]=await Promise.all([fetch("/api/gold"),fetch("/api/profile-options")]);if(goldResponse.ok){const questions=await goldResponse.json();const select=$("gold");select.replaceChildren(option("",`Choisir parmi ${questions.length} scénarios…`));for(const question of questions){state.goldById[question.id]=question;select.append(option(question.id,`${question.id} · ${question.question}`));}}if(profileResponse.ok){state.profileOptions=await profileResponse.json();populateSelect("department",state.profileOptions.departments);populateSelect("employment-type",state.profileOptions.employment_types);filterJobs();}}
+function chips(label,sources,kind){const row=el("div",{class:"chips"},el("span",{},label));if(!sources.length)row.append(el("span",{class:"chip"},"aucune"));for(const source of sources)row.append(el("span",{class:`chip ${kind}`},sourceKey(source)));return row;}
+function showGold(question){state.currentGold=question||null;const box=$("gold-details");if(!question){box.hidden=true;box.replaceChildren();return;}box.replaceChildren(el("p",{},el("strong",{},`${CATEGORY_LABELS[question.category]||question.category} · `),question.difficulty),el("p",{},el("strong",{},"Réponse attendue : "),question.expected_answer),chips("Attendues",question.expected_sources,"expected"),chips("Acceptables",question.acceptable_sources,"acceptable"),chips("Interdites",question.forbidden_sources,"forbidden"));box.hidden=false;}
+function setProfile(userContext={}){$("department").value=userContext.department||"";filterJobs();$("job-family").value=userContext.job_family||"";$("employment-type").value=userContext.employment_type||"";$("probation").value=userContext.in_probation===true?"true":userContext.in_probation===false?"false":"";$("seniority").value=userContext.seniority_years??"";}
+function currentUserContext(){const context={};if($("department").value)context.department=$("department").value;if($("job-family").value)context.job_family=$("job-family").value;if($("employment-type").value)context.employment_type=$("employment-type").value;if($("probation").value)context.in_probation=$("probation").value==="true";if($("seniority").value!=="")context.seniority_years=Number($("seniority").value);return context;}
+function renderSources(citations){const target=$("sources");if(!citations.length){target.replaceChildren(el("div",{class:"source-card"},"Aucune source citée."));return;}target.replaceChildren(...citations.map((citation)=>{const pages=citation.pages.length?` · p. ${citation.pages.join(", ")}`:"";return el("article",{class:"source-card"},el("div",{class:"source-id"},citation.source_id),el("strong",{},`${citation.source.document_id} §${citation.source.section} · ${citation.title}`),el("div",{class:"source-meta"},`v${citation.version} · rang ${citation.rank}${pages} · score ${citation.score.toFixed(3)}`));}));}
+function roleOf(source){if(!state.currentGold)return null;const key=sourceKey(source);if(state.currentGold.expected_sources.some((item)=>sourceKey(item)===key))return"expected";if(state.currentGold.acceptable_sources.some((item)=>sourceKey(item)===key))return"acceptable";if(state.currentGold.forbidden_sources.some((item)=>sourceKey(item)===key))return"forbidden";return null;}
+function renderVerdict(data){const target=$("verdict");target.replaceChildren();if(!state.currentGold)return;const cited=data.citations.map((item)=>sourceKey(item.source));const expected=state.currentGold.expected_sources.map(sourceKey);const forbidden=state.currentGold.forbidden_sources.map(sourceKey).filter((key)=>cited.includes(key));let text,kind;if(state.currentGold.category==="unanswerable"){const correct=data.status==="not_found"||data.status==="partial";text=correct?"Le modèle a identifié que l’information est absente ou incomplète.":"Le modèle affirme disposer d’une réponse complète à une question sans réponse attendue.";kind=correct?"ok":"bad";}else{const missing=expected.filter((key)=>!cited.includes(key));text=missing.length?`Source attendue non citée : ${missing.join(", ")}.`:"Toutes les sources attendues ont été citées.";kind=missing.length?"warn":"ok";}if(forbidden.length){text+=` Source interdite citée : ${forbidden.join(", ")}.`;kind="bad";}target.append(el("div",{class:`verdict ${kind}`},text));}
+function renderRetrieval(results){$("retrieval-results").replaceChildren(...results.map((result)=>{const role=roleOf(result.source);const marker=role?el("span",{class:`chip ${role}`},role):null;return el("article",{class:"retrieval-item"},el("div",{class:"rank"},String(result.rank)),el("div",{},el("div",{class:"retrieval-title"},`${result.source.document_id} §${result.source.section} · ${result.title}`),el("div",{class:"retrieval-path"},`${result.chunk_id} · ${result.lifecycle_status}`,marker),el("div",{class:"retrieval-content"},result.content)),el("div",{class:"score"},result.score.toFixed(3)));}));}
+function renderAnswer(data){$("empty-state").hidden=true;$("answer-card").hidden=false;$("diagnostics").hidden=false;const badge=$("answer-status");badge.className=`status-badge ${data.status}`;badge.textContent=STATUS_LABELS[data.status]||data.status;$("timing").textContent=`${data.model} · recherche ${data.timing.retrieval_ms} ms · génération ${(data.timing.generation_ms/1000).toFixed(1)} s`;$("answer-text").textContent=data.answer;renderSources(data.citations);renderVerdict(data);renderRetrieval(data.retrieval_results);}
+function friendlyError(message){if(message.includes("generation server request failed"))return"Le modèle local ne répond pas. Vérifiez que llama-server est toujours ouvert sur le port 8080.";if(message.includes("already accessed"))return"L’index Qdrant est déjà ouvert par un autre programme. Arrêtez l’autre API ou script puis réessayez.";return message;}
+async function ask(){const question=$("question").value.trim();if(question.length<2)return;const button=$("submit");button.disabled=true;$("error").replaceChildren();$("answer-card").hidden=true;$("diagnostics").hidden=true;$("empty-state").hidden=true;$("status").replaceChildren(el("span",{class:"spinner"}),"Recherche des passages puis génération locale…");try{const response=await fetch("/api/answer",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({question,user_context:currentUserContext(),reference_date:$("reference-date").value,limit:Number($("limit").value),include_archived:$("archived").checked})});const data=await response.json();if(!response.ok)throw new Error(typeof data.detail==="string"?data.detail:JSON.stringify(data.detail));$("status").textContent=`${data.retrieved_count} passages analysés · réponse en ${(data.timing.total_ms/1000).toFixed(1)} s`;renderAnswer(data);}catch(error){$("status").textContent="";$("empty-state").hidden=false;$("error").replaceChildren(el("div",{class:"error"},friendlyError(error.message)));}finally{button.disabled=false;}}
+$("form").addEventListener("submit",(event)=>{event.preventDefault();ask();});
+$("question").addEventListener("keydown",(event)=>{if(event.key==="Enter"&&!event.shiftKey){event.preventDefault();ask();}});
+$("question").addEventListener("input",()=>{if(state.currentGold&&$("question").value.trim()!==state.currentGold.question){$("gold").value="";showGold(null);}});
+$("department").addEventListener("change",filterJobs);
+$("gold").addEventListener("change",()=>{const question=state.goldById[$("gold").value];showGold(question);if(!question)return;$("question").value=question.question;setProfile(question.user_context);$("archived").checked=question.category==="history";$("reference-date").value="2026-11-04";$("limit").value="10";$("status").textContent="Scénario chargé. Vérifiez le profil puis lancez la réponse.";});
+$("reference-date").value=new Date().toLocaleDateString("en-CA");
+loadData().catch(()=>{$("gold").replaceChildren(option("","Scénarios indisponibles"));populateSelect("department",[]);populateSelect("job-family",[]);populateSelect("employment-type",[]);});
 </script>
 </body>
 </html>

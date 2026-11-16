@@ -10,12 +10,14 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
+from .answer_api import router as answer_router
 from .search_api import router as search_router
 
 STATIC_DIR = Path(__file__).parent / "static"
 
 app = FastAPI(title="PeopleKnowledge API", version="0.1.0")
 app.include_router(search_router)
+app.include_router(answer_router)
 
 
 @app.get("/health", tags=["system"])
@@ -27,6 +29,6 @@ def health_check() -> dict[str, str]:
 
 @app.get("/", include_in_schema=False)
 def search_page() -> FileResponse:
-    """Test page: ask a question, see the chunks found (and the gold questions)."""
+    """Assistant page: ask a question, get an answer, and inspect its evidence."""
 
     return FileResponse(STATIC_DIR / "search.html", media_type="text/html")
