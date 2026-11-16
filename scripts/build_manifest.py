@@ -30,7 +30,8 @@ DEFAULT_SOURCE_DIR = PROJECT_ROOT / "datasets" / "source_documents"
 DEFAULT_OUTPUT_PATH = PROJECT_ROOT / "datasets" / "metadata" / "document_manifest.jsonl"
 DEFAULT_CATALOG_PATH = PROJECT_ROOT / "datasets" / "metadata" / "document_catalog.yaml"
 HASH_CHUNK_SIZE = 1024 * 1024
-SCHEMA_VERSION = 2
+# 3: "parsing" field (parser options of the document, {} when none)
+SCHEMA_VERSION = 3
 
 # Catalog fields copied into the manifest, in this order.
 CATALOG_FIELDS = (
@@ -380,6 +381,13 @@ def validate_catalog(entries: list[dict[str, object]]) -> list[str]:
             errors.append(f"{label}: lifecycle_status must be one of {sorted(LIFECYCLE_STATUSES)}.")
         if entry.get("doc_type") not in DOC_TYPES:
             errors.append(f"{label}: doc_type must be one of {sorted(DOC_TYPES)}.")
+        # Optional parser options. Their names are checked by the parser itself,
+        # which is the only one to know them; here only the shape is checked.
+        parsing = entry.get("parsing")
+        if parsing is not None and not (
+            isinstance(parsing, dict) and all(isinstance(key, str) for key in parsing)
+        ):
+            errors.append(f"{label}: parsing must be a mapping of option names to values.")
 
         try:
             start = iso_date(entry.get("effective_from"))
@@ -454,6 +462,7 @@ def apply_catalog(
         record["effective_from"] = iso_date(entry["effective_from"])
         record["effective_until"] = iso_date(entry["effective_until"])
         record["version_id"] = f"{entry['document_id']}-v{record['version']}"
+        record["parsing"] = dict(entry.get("parsing") or {})
         record["identity_resolution"] = "catalog"
         record.pop("identity_candidates", None)
         record["catalog_status"] = "matched"
