@@ -87,6 +87,15 @@ def payload_of(chunk: Chunk, embedding_model: str) -> dict[str, Any]:
     return payload
 
 
+def chunk_from_payload(payload: dict[str, Any]) -> Chunk:
+    """The validated chunk stored in a point payload (index-only fields removed)."""
+
+    chunk_payload = dict(payload)
+    chunk_payload.pop("embedding_model", None)
+    chunk_payload.pop("text_hash", None)
+    return Chunk.model_validate(chunk_payload)
+
+
 def indexed_state(client: QdrantClient, collection: str) -> dict[str, tuple[str, str]]:
     """chunk_id -> (text_hash, embedding_model) of every point already in the collection."""
 

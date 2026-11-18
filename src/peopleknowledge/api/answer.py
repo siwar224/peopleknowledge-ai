@@ -1,4 +1,9 @@
-"""End-to-end RAG answer endpoint and profile options for the web interface."""
+"""End-to-end RAG answer endpoint and profile options for the web interface.
+
+Every answer is also EVALUATED (evaluation/generation_eval.py): numbers absent
+from the sources, prompt leak, repeated question for any question; with a
+``gold_id``, also the expected status, the key facts and the cited sources.
+"""
 
 from __future__ import annotations
 
@@ -12,7 +17,8 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, ValidationError
 
 from ..config import Settings, get_settings
-from ..evaluation.gold import Source, UserContext
+from ..evaluation.generation_eval import GenerationEvaluation, evaluate_answer
+from ..evaluation.gold import GoldQuestion, Source, UserContext, load_gold
 from ..generation import (
     ContextSource,
     GenerationError,
@@ -22,8 +28,7 @@ from ..generation import (
     build_context,
     build_prompt,
 )
-from ..ingestion.chunking.models import Chunk
-from ..retrieval.qdrant_index import search
+from ..retrieval.qdrant_index import chunk_from_payload, search
 from .search import SearchResult, SearchService, get_search_service, to_result
 
 router = APIRouter(prefix="/api", tags=["answers"])
@@ -70,6 +75,8 @@ class AnswerRequest(BaseModel):
     reference_date: date = Field(default_factory=date.today)
     limit: int = Field(default=5, ge=1, le=20)
     include_archived: bool = False
+    # A gold question id ("Q016"): the answer is then compared with the expected one.
+    gold_id: str | None = Field(default=None, pattern=r"^Q\d{3}$")
 
 
 class AnswerCitation(BaseModel):
@@ -101,13 +108,22 @@ class AnswerResponse(BaseModel):
     retrieved_count: int
     timing: AnswerTiming
     retrieval_results: list[SearchResult]
+    evaluation: GenerationEvaluation
 
 
-def _chunk_from_payload(payload: dict) -> Chunk:
-    chunk_payload = dict(payload)
-    chunk_payload.pop("embedding_model", None)
-    chunk_payload.pop("text_hash", None)
-    return Chunk.model_validate(chunk_payload)
+def _gold_and_rules(settings: Settings, gold_id: str | None) -> tuple[GoldQuestion | None, dict]:
+    """The gold question to compare with (404 if unknown) and the rules of its key facts."""
+
+    if gold_id is None:
+        return None, {}
+    try:
+        questions = {question.id: question for question in load_gold(settings.gold_path)}
+        rules = yaml.safe_load(settings.rules_path.read_text(encoding="utf-8")) or {}
+    except (OSError, ValueError, yaml.YAMLError) as error:
+        raise HTTPException(status_code=500, detail=f"evaluation files: {error}") from error
+    if gold_id not in questions:
+        raise HTTPException(status_code=404, detail=f"unknown gold question {gold_id!r}.")
+    return questions[gold_id], rules
 
 
 def _citation(source_id: str, sources: dict[str, ContextSource]) -> AnswerCitation:
@@ -130,9 +146,11 @@ def answer_question(
     body: AnswerRequest,
     search_service: Annotated[SearchService, Depends(get_search_service)],
     generation_service: Annotated[GenerationService, Depends(get_generation_service)],
+    settings: Annotated[Settings, Depends(get_settings)],
 ) -> AnswerResponse:
-    """Retrieve evidence, build the prompt, generate, and resolve trusted citations."""
+    """Retrieve evidence, build the prompt, generate, resolve citations, evaluate."""
 
+    gold, rules = _gold_and_rules(settings, body.gold_id)
     started = time.perf_counter()
     retrieval_started = time.perf_counter()
     try:
@@ -160,7 +178,7 @@ def answer_question(
             RetrievedChunk(
                 rank=rank,
                 score=point.score,
-                chunk=_chunk_from_payload(point.payload or {}),
+                chunk=chunk_from_payload(point.payload or {}),
             )
             for rank, point in enumerate(points, 1)
         ]
@@ -192,6 +210,16 @@ def answer_question(
         to_result(rank, point.score, point.payload or {})
         for rank, point in enumerate(points, 1)
     ]
+    evaluation = evaluate_answer(
+        question_text=body.question,
+        status=result.answer.status,
+        answer=result.answer.answer,
+        cited=[citation.source for citation in citations],
+        prompt_user_text=prompt.messages[1].content,
+        system_prompt=prompt.messages[0].content,
+        gold=gold,
+        rules=rules,
+    )
     return AnswerResponse(
         question=body.question,
         status=result.answer.status,
@@ -207,6 +235,7 @@ def answer_question(
             total_ms=int((time.perf_counter() - started) * 1000),
         ),
         retrieval_results=retrieval_results,
+        evaluation=evaluation,
     )
 
 

@@ -239,3 +239,43 @@ employment_types:
     assert response.json()["job_families"] == [
         {"id": "software_engineer", "label": "Software Engineer", "department": "engineering"}
     ]
+
+
+def test_every_answer_carries_generic_checks(answer_api) -> None:
+    api, _ = answer_api
+
+    evaluation = api.post("/api/answer", json={"question": "congés pendant mon essai"}).json()[
+        "evaluation"
+    ]
+
+    assert evaluation["gold_id"] is None and evaluation["passed"] is None
+    assert evaluation["unsupported_numbers"] == []
+    assert evaluation["prompt_leak"] is False
+
+
+def test_a_gold_id_compares_the_answer_with_the_gold_question(answer_api, tmp_path: Path) -> None:
+    api, _ = answer_api
+    gold = tmp_path / "gold.jsonl"
+    gold.write_text(
+        '{"id": "Q001", "question": "congés pendant mon essai", '
+        '"expected_sources": [{"document_id": "HR-005", "section": "4.2"}], '
+        '"expected_answer": "2 jours au maximum.", "rule_refs": ["probation.max_days"], '
+        '"category": "exception_elsewhere", "difficulty": "easy"}\n',
+        encoding="utf-8",
+    )
+    rules = tmp_path / "rules.yaml"
+    rules.write_text("probation:\n  max_days: 2\n", encoding="utf-8")
+    app.dependency_overrides[get_settings] = lambda: Settings(gold_path=gold, rules_path=rules)
+
+    data = api.post(
+        "/api/answer", json={"question": "congés pendant mon essai", "gold_id": "Q001"}
+    ).json()
+    unknown = api.post("/api/answer", json={"question": "congés", "gold_id": "Q999"})
+
+    evaluation = data["evaluation"]
+    assert evaluation["gold_id"] == "Q001"
+    assert evaluation["key_facts"] == ["2"]
+    # the fake model answers "deux jours" in words: the figure 2 is missing
+    assert evaluation["facts_missing"] == ["2"] and evaluation["passed"] is False
+    assert evaluation["sources"]["recall"] == 1.0
+    assert unknown.status_code == 404

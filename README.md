@@ -129,7 +129,21 @@ What the measurements taught:
 - With archived documents forced into the search, the old v1 policy reaches rank 2 on three version-conflict questions: **the lifecycle filter is necessary**, not cosmetic.
 - Unanswerable questions score in the same range as answerable ones, so a similarity threshold cannot detect "no answer"; the generation prompt has to.
 
-Generation quality (correctness, status, citations, latency) is the next measurement; see the [roadmap](#roadmap).
+### Generation evaluation
+
+Every generated answer is checked automatically, without an LLM judge (`src/peopleknowledge/evaluation/generation_eval.py`):
+
+| Check | Needs a gold question | Pass condition |
+|---|:---:|---|
+| Status | yes | answerable → `complete` (`partial` = weak); unanswerable → never `complete` |
+| Key facts | yes | every number of the question's `rule_refs` (in `canonical_policy_rules.yaml`) appears in the answer |
+| Sources | yes | expected sources cited (recall), cited sources expected or acceptable (precision), no forbidden source |
+| Unsupported numbers | no | every number of the answer is in the prompt (or is the sum of two of its numbers) |
+| Prompt leak / repeated question | no | the answer is not text copied from the system prompt or the question |
+
+Key facts are **derived** from `rule_refs`, not written by hand (`evaluation/key_facts.py`): a path can point to one list item (`annual_leave.notice_periods[2].notice_working_days`), document references (`HR-013`, `lot 2`) are ignored, and `validate_gold.py` fails when a gold answer does not contain all of its own key facts, so a too broad `rule_refs` is caught at once.
+
+The checks run on **every answer of the web page** (generic checks for a free question, all checks for a gold scenario), and on the 32 questions with `scripts/evaluate_generation.py`, in two modes: `e2e` (through the running API) and `oracle` (the model receives the expected sources directly: it measures the generation alone, so a low e2e score with a good oracle score points to the retrieval).
 
 ## Tech stack
 
@@ -192,22 +206,35 @@ Each runner only rewrites what changed and can be rerun safely.
 
 ### 3. Start the language model
 
-Run a `llama.cpp` server with a Qwen 2.5 Instruct GGUF model, exposing the OpenAI-compatible API on `http://localhost:8080/v1` (configurable in `.env`).
+Run a `llama.cpp` server with a Qwen 2.5 Instruct GGUF model, exposing the OpenAI-compatible API on `http://localhost:8080/v1` (configurable in `.env`). In a **separate terminal** (it must stay open):
+
+```powershell
+winget install ggml.llamacpp      # once
+llama-server -hf Qwen/Qwen2.5-1.5B-Instruct-GGUF:Q4_K_M --port 8080 --alias qwen2.5-1.5b-instruct -c 8192
+```
+
+`-hf` downloads the model (about 1 GB) on the first run; with a local file use `-m C:\models\qwen2.5-1.5b-instruct-q4_k_m.gguf` instead. Ready when <http://localhost:8080/health> answers `{"status":"ok"}`. `-c 8192` leaves room for the long prompt (system rules + 10 passages).
 
 ### 4. Run the assistant
+
+In a second terminal:
 
 ```powershell
 python -m uvicorn peopleknowledge.api.main:app --port 8000
 ```
 
-Open <http://localhost:8000> for the test page, or <http://localhost:8000/docs> for the interactive API documentation.
+Open <http://localhost:8000> for the test page, or <http://localhost:8000/docs> for the interactive API documentation. If port 8000 is taken, use another one (`--port 8002`). Choose a scenario in "Question de référence" and ask it: the "Évaluation automatique" panel under the answer shows the checks. The first question takes about a minute (the embedding model loads), then each answer takes 10 to 60 s on a laptop CPU.
+
+The local Qdrant index can be opened by one program at a time: stop the API before running `index_chunks.py` or `evaluate_retrieval.py` without `--api-url`.
 
 ### 5. Measure and test
 
 ```powershell
 python scripts/validate_gold.py                       # check the gold questions against the corpus
 python scripts/evaluate_retrieval.py --label baseline # retrieval metrics
-python -m pytest                                      # 249 tests
+python scripts/evaluate_generation.py --label baseline                      # generation, via the running API
+python scripts/evaluate_generation.py --mode oracle --label baseline_oracle # generation alone (llama-server only)
+python -m pytest                                      # 284 tests
 python -m ruff check .
 ```
 
@@ -230,9 +257,12 @@ POST /api/answer
   "question": "Puis-je poser des congés pendant ma période d'essai ?",
   "reference_date": "2026-11-04",
   "user_context": { "employment_type": "cdi", "in_probation": true },
-  "limit": 5
+  "limit": 5,
+  "gold_id": "Q001"
 }
 ```
+
+`gold_id` is optional: with it, the `evaluation` field of the response compares the answer with that gold question; without it, only the generic checks run.
 
 ## Key design decisions
 

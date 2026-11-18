@@ -77,7 +77,10 @@ class GoldQuestion(BaseModel):
     acceptable_sources: list[Source] = Field(default_factory=list)
     forbidden_sources: list[Source] = Field(default_factory=list)
     expected_answer: str = Field(min_length=1)
-    rule_refs: list[str] = Field(default_factory=list)  # paths in canonical_policy_rules.yaml
+    # paths in canonical_policy_rules.yaml ("a.b", "a.list[2]"); their numbers are the key facts
+    rule_refs: list[str] = Field(default_factory=list)
+    # numbers of those rules that are NOT part of this answer (see evaluation/key_facts.py)
+    not_required_facts: list[str] = Field(default_factory=list)
     category: Category
     difficulty: Difficulty
 

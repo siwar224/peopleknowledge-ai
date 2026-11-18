@@ -120,3 +120,24 @@ def test_rule_exists_follows_dotted_paths() -> None:
     assert rule_exists(rules, "a.b.c")
     assert not rule_exists(rules, "a.x")
     assert not rule_exists(rules, "list.0")  # lists are not addressed by index
+
+
+def test_rule_exists_addresses_list_items_by_index() -> None:
+    rules = {"list": [{"x": 1}, {"x": 2}]}
+
+    assert rule_exists(rules, "list[1].x")
+    assert not rule_exists(rules, "list[2]")
+
+
+def test_check_reports_a_gold_answer_without_its_key_facts(tmp_path: Path) -> None:
+    sources = source_index(write_chunks(tmp_path / "chunks"))
+    rules = {"leave": {"periods": [{"notice": 3}, {"notice": 20}]}}
+    ids = {"department": set(), "job_family": set(), "employment_type": {"cdi"}}
+    broad = GoldQuestion.model_validate(
+        question(acceptable_sources=[], rule_refs=["leave.periods"], expected_answer="20 jours.")
+    )
+    narrow = broad.model_copy(update={"rule_refs": ["leave.periods[1].notice"]})
+
+    errors = check([broad], sources, rules, ids)
+    assert len(errors) == 1 and "lacks key fact(s) ['3']" in errors[0]
+    assert check([narrow], sources, rules, ids) == []

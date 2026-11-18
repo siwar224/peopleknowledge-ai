@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     llm_timeout_seconds: float = Field(default=120.0, gt=0)
 
     gold_path: Path = PROJECT_ROOT / "datasets" / "evaluation" / "rag_questions_gold.jsonl"
+    rules_path: Path = PROJECT_ROOT / "datasets" / "metadata" / "canonical_policy_rules.yaml"
     company_profile_path: Path = PROJECT_ROOT / "datasets" / "metadata" / "company_profile.yaml"
 
     def apply_hugging_face_environment(self) -> None:

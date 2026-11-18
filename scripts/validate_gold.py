@@ -6,6 +6,8 @@ model cannot see alone, across files:
 - every cited source exists in the chunks (a typo like "4.3" for "4.2" would
   otherwise make a question impossible to pass);
 - every ``rule_refs`` path exists in canonical_policy_rules.yaml;
+- every gold answer contains all of its KEY FACTS (the numbers of its rules,
+  see evaluation/key_facts.py): otherwise a ``rule_refs`` is too broad;
 - every ``user_context`` value exists in company_profile.yaml.
 
 It also prints how the questions are spread over categories and documents.
@@ -26,6 +28,12 @@ from typing import Any
 import yaml
 
 from peopleknowledge.evaluation.gold import GoldQuestion, Source, load_gold, source_of_chunk
+from peopleknowledge.evaluation.key_facts import (
+    RuleRefError,
+    derive_key_facts,
+    extract_numbers,
+    resolve_rule,
+)
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_GOLD = PROJECT_ROOT / "datasets" / "evaluation" / "rag_questions_gold.jsonl"
@@ -53,12 +61,19 @@ def source_index(chunks_dir: Path) -> set[Source]:
 
 
 def rule_exists(rules: dict[str, Any], path: str) -> bool:
-    node: Any = rules
-    for key in path.split("."):
-        if not isinstance(node, dict) or key not in node:
-            return False
-        node = node[key]
+    try:
+        resolve_rule(rules, path)
+    except RuleRefError:
+        return False
     return True
+
+
+def missing_key_facts(question: GoldQuestion, rules: dict[str, Any]) -> list[str]:
+    """Key facts of the question that its own gold answer does not contain."""
+
+    facts = derive_key_facts(question.rule_refs, rules, question.not_required_facts)
+    present = extract_numbers(question.expected_answer)
+    return [fact.value for fact in facts if fact.value not in present]
 
 
 def profile_ids(profile: dict[str, Any]) -> dict[str, set[str]]:
@@ -89,14 +104,22 @@ def check(
                     f"{question.id}: {role} source {source.document_id} §{source.section} "
                     "does not exist in the chunks."
                 )
-        for path in question.rule_refs:
-            if not rule_exists(rules, path):
-                errors.append(f"{question.id}: rule_refs {path!r} not in canonical_policy_rules.yaml.")
+        bad_paths = [path for path in question.rule_refs if not rule_exists(rules, path)]
+        for path in bad_paths:
+            errors.append(f"{question.id}: rule_refs {path!r} not in canonical_policy_rules.yaml.")
+        missing = [] if bad_paths else missing_key_facts(question, rules)
+        if missing:
+            errors.append(
+                f"{question.id}: gold answer lacks key fact(s) {missing} of its rule_refs "
+                "(point to a narrower rule, e.g. list[2], or list them in not_required_facts)."
+            )
         context = question.user_context.model_dump(exclude_none=True)
         for field, allowed in ids.items():
             value = context.get(field)
             if value is not None and value not in allowed:
-                errors.append(f"{question.id}: user_context.{field} {value!r} not in company_profile.yaml.")
+                errors.append(
+                    f"{question.id}: user_context.{field} {value!r} not in company_profile.yaml."
+                )
     return errors
 
 
