@@ -169,7 +169,7 @@ def test_answer_runs_the_complete_pipeline_and_resolves_citations(
     user_message = generator.prompts[0].messages[1].content
     assert "employment_type: cdi" in user_message
     assert "in_probation: true" in user_message
-    assert user_message.endswith("congés pendant mon essai")
+    assert "<employee_question>\ncongés pendant mon essai\n</employee_question>" in user_message
 
 
 def test_answer_only_includes_archived_evidence_when_requested(
