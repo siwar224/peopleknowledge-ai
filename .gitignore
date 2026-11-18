@@ -43,3 +43,4 @@ Thumbs.db
 !datasets/metadata/*.yaml
 /CLAUDE.md
 /AGENT.md
+.claude/launch.json
