@@ -24,7 +24,8 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from app.rag.evaluation.gold import GoldQuestion, Source, load_gold, source_of_chunk
+
+from peopleknowledge.evaluation.gold import GoldQuestion, Source, load_gold, source_of_chunk
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_GOLD = PROJECT_ROOT / "datasets" / "evaluation" / "rag_questions_gold.jsonl"

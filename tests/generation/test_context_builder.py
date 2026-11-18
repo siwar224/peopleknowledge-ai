@@ -1,8 +1,9 @@
 """Tests for the prompt-ready context built from retrieval results."""
 
 import pytest
-from app.rag.chunking.models import Chunk
-from app.rag.generation import RetrievedChunk, build_context
+
+from peopleknowledge.generation import RetrievedChunk, build_context
+from peopleknowledge.ingestion.chunking.models import Chunk
 
 
 def make_chunk(

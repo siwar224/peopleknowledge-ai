@@ -5,14 +5,15 @@ import math
 from pathlib import Path
 
 import pytest
-from app.config import Settings, get_settings
-from app.main import app
-from app.rag.chunking.models import Chunk
-from app.rag.embeddings.base import Embedder
-from app.rag.indexing.qdrant_index import ensure_collection, sync_chunks
-from app.search_api import SearchService, get_search_service
 from fastapi.testclient import TestClient
 from qdrant_client import QdrantClient
+
+from peopleknowledge.api.main import app
+from peopleknowledge.api.search import SearchService, get_search_service
+from peopleknowledge.config import Settings, get_settings
+from peopleknowledge.ingestion.chunking.models import Chunk
+from peopleknowledge.retrieval.embeddings.base import Embedder
+from peopleknowledge.retrieval.qdrant_index import ensure_collection, sync_chunks
 
 
 class WordEmbedder(Embedder):

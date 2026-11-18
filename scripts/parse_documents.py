@@ -36,9 +36,10 @@ from pathlib import Path
 from typing import Any
 
 import yaml
-from app.rag.parsers import ParsingError, get_parser
-from app.rag.parsers.models import DocumentMetadata, ParsedDocument
-from app.rag.pipeline_io import (
+
+from peopleknowledge.ingestion.parsers import ParsingError, get_parser
+from peopleknowledge.ingestion.parsers.models import DocumentMetadata, ParsedDocument
+from peopleknowledge.ingestion.pipeline_io import (
     Outcome,
     Report,
     obsolete_outputs,

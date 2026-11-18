@@ -4,9 +4,9 @@ import json
 from pathlib import Path
 
 import pytest
-from app.rag.evaluation.gold import GoldQuestion, Source, load_gold
 from pydantic import ValidationError
 
+from peopleknowledge.evaluation.gold import GoldQuestion, Source, load_gold
 from scripts.validate_gold import check, rule_exists, source_index
 
 

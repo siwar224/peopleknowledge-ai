@@ -32,7 +32,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from statistics import median
 
-from app.rag.parsers.models import ParsedDocument, ParsedElement
+from peopleknowledge.ingestion.parsers.models import ParsedDocument, ParsedElement
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PARSED_DIR = PROJECT_ROOT / "datasets" / "processed" / "parsed"

@@ -17,9 +17,10 @@ import argparse
 import sys
 from pathlib import Path
 
-from app.rag.embeddings import SentenceTransformerEmbedder
-from app.rag.indexing.qdrant_index import search
 from qdrant_client import QdrantClient
+
+from peopleknowledge.retrieval.embeddings import SentenceTransformerEmbedder
+from peopleknowledge.retrieval.qdrant_index import search
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_QDRANT_PATH = PROJECT_ROOT / "datasets" / "indexes" / "qdrant"

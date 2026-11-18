@@ -1,8 +1,9 @@
 """Retrieval indicators (hit@k, MRR, forbidden sources), with a scripted fake retriever."""
 
 import pytest
-from app.rag.evaluation.gold import GoldQuestion, Source
-from app.rag.evaluation.retrieval_eval import (
+
+from peopleknowledge.evaluation.gold import GoldQuestion, Source
+from peopleknowledge.evaluation.retrieval_eval import (
     Retrieved,
     evaluate,
     evaluate_question,

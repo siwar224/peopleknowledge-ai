@@ -25,21 +25,22 @@ import sys
 from collections.abc import Iterable
 from pathlib import Path
 
-from app.rag.chunking.chunker import (
+from pydantic import ValidationError
+
+from peopleknowledge.ingestion.chunking.chunker import (
     DEFAULT_MAX_TOKENS,
     ChunkingError,
     TokenCounter,
     chunk_document,
 )
-from app.rag.parsers.models import ParsedDocument
-from app.rag.pipeline_io import (
+from peopleknowledge.ingestion.parsers.models import ParsedDocument
+from peopleknowledge.ingestion.pipeline_io import (
     Outcome,
     Report,
     obsolete_outputs,
     print_report,
     write_text_if_changed,
 )
-from pydantic import ValidationError
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_PARSED_DIR = PROJECT_ROOT / "datasets" / "processed" / "parsed"
