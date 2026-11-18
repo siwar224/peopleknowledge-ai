@@ -28,6 +28,8 @@ datasets/evaluation/**
 !datasets/source_documents/.gitkeep
 !datasets/metadata/.gitkeep
 !datasets/evaluation/.gitkeep
+# Hand-written gold questions cannot be regenerated: they are versioned
+!datasets/evaluation/rag_questions_gold.jsonl
 
 # Generated data / local indexes
 datasets/processed/
@@ -44,3 +46,7 @@ Thumbs.db
 /CLAUDE.md
 /AGENT.md
 .claude/launch.json
+
+
+# Local AI-assistant tool config
+.claude/

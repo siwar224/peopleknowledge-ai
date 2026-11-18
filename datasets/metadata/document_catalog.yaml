@@ -11,6 +11,9 @@
 #   category         : voir document_categories dans company_profile.yaml
 #   department_scope : id d'un département ou d'une portée (company_profile.yaml)
 # Dates au format AAAA-MM-JJ ; effective_until: null = toujours en vigueur.
+#
+# Clé facultative `parsing` : options du parser propres à UN document (ex. colonnes d'un CSV).
+# Les réglages communs à tout le corpus vont dans parsing_config.yaml, pas ici.
 
 meta:
   version: "1.0"
@@ -97,6 +100,9 @@ documents:
     category: remote_work
     department_scope: all
     owner: people_finance
+    parsing:                 # options propres à ce fichier, passées au parser CSV
+      id_column: row_id      # identifiants stables RW-XXX-NNN, cités dans les réponses
+      group_by: department   # le département devient le section_path de chaque ligne
 
   - file: 06_archived/remote_work_policy_v1.pdf
     document_id: HR-029

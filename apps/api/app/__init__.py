@@ -1,1 +1,0 @@
-"""PeopleKnowledge API application package."""
