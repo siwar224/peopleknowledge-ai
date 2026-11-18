@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
-from ..chunking.models import Chunk
 from ..evaluation.gold import Source, source_of_chunk
+from ..ingestion.chunking.models import Chunk
 from .models import BuiltContext, ContextSource, RetrievedChunk
 
 DEFAULT_MAX_CHUNKS = 10

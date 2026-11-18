@@ -45,3 +45,6 @@ Thumbs.db
 !datasets/metadata/*.yaml
 /CLAUDE.md
 /AGENT.md
+
+# Local AI-assistant tool config
+.claude/

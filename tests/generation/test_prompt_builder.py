@@ -3,8 +3,9 @@
 from datetime import date
 
 import pytest
-from app.rag.evaluation.gold import UserContext
-from app.rag.generation import BuiltContext, build_prompt
+
+from peopleknowledge.evaluation.gold import UserContext
+from peopleknowledge.generation import BuiltContext, build_prompt
 
 
 def test_builds_one_system_message_then_one_user_message() -> None:

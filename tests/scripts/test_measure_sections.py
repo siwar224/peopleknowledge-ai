@@ -1,7 +1,6 @@
 """How measure_sections.py cuts a parsed document into units (no tokenizer needed)."""
 
-from app.rag.parsers.models import ParsedDocument
-
+from peopleknowledge.ingestion.parsers.models import ParsedDocument
 from scripts.measure_sections import bucket, measure, units_of
 
 DOCUMENT = {

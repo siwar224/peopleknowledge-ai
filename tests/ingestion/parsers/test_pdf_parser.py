@@ -8,10 +8,11 @@ look of one corpus.
 from pathlib import Path
 
 import pytest
-from app.rag.parsers import get_parser
-from app.rag.parsers.base import ParsingError
-from app.rag.parsers.models import DocumentMetadata
-from app.rag.parsers.pdf_parser import PdfParser
+
+from peopleknowledge.ingestion.parsers import get_parser
+from peopleknowledge.ingestion.parsers.base import ParsingError
+from peopleknowledge.ingestion.parsers.models import DocumentMetadata
+from peopleknowledge.ingestion.parsers.pdf_parser import PdfParser
 
 reportlab = pytest.importorskip("reportlab")  # in the optional "corpus" group
 

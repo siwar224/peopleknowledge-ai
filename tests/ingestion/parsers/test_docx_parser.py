@@ -4,10 +4,11 @@ from pathlib import Path
 
 import docx
 import pytest
-from app.rag.parsers import get_parser
-from app.rag.parsers.docx_parser import DocxParser
-from app.rag.parsers.models import DocumentMetadata
 from docx.enum.style import WD_STYLE_TYPE
+
+from peopleknowledge.ingestion.parsers import get_parser
+from peopleknowledge.ingestion.parsers.docx_parser import DocxParser
+from peopleknowledge.ingestion.parsers.models import DocumentMetadata
 
 DOCUMENT = DocumentMetadata(
     document_id="T-002",
@@ -188,7 +189,7 @@ def test_headers_and_footers_are_left_out(tmp_path: Path) -> None:
 
 
 def test_empty_document_is_an_error(tmp_path: Path) -> None:
-    from app.rag.parsers.base import ParsingError
+    from peopleknowledge.ingestion.parsers.base import ParsingError
 
     with pytest.raises(ParsingError, match="no content extracted"):
         parse(build(tmp_path, lambda document: None))

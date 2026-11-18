@@ -5,7 +5,8 @@ from datetime import date
 from types import SimpleNamespace
 
 import pytest
-from app.rag.generation import (
+
+from peopleknowledge.generation import (
     BuiltContext,
     GenerationError,
     OpenAICompatibleGenerator,

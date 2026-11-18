@@ -9,11 +9,12 @@ from functools import cache
 from pathlib import Path
 
 import pytest
-from app.rag.chunking.chunker import chunk_document
-from app.rag.chunking.models import Chunk
-from app.rag.parsers.models import ParsedDocument
 
-PARSED_DIR = Path(__file__).resolve().parents[2] / "datasets" / "processed" / "parsed"
+from peopleknowledge.ingestion.chunking.chunker import chunk_document
+from peopleknowledge.ingestion.chunking.models import Chunk
+from peopleknowledge.ingestion.parsers.models import ParsedDocument
+
+PARSED_DIR = Path(__file__).resolve().parents[3] / "datasets" / "processed" / "parsed"
 TOKENIZER = "BAAI/bge-m3"
 MAX_TOKENS = 512
 

@@ -1,7 +1,7 @@
 """Entry point of the PeopleKnowledge API.
 
 Start it from the project root:
-    python -m uvicorn app.main:app --app-dir apps/api --port 8000
+    python -m uvicorn peopleknowledge.api.main:app --port 8000
 then open http://localhost:8000 for the search test page.
 """
 
@@ -10,8 +10,8 @@ from pathlib import Path
 from fastapi import FastAPI
 from fastapi.responses import FileResponse
 
-from .answer_api import router as answer_router
-from .search_api import router as search_router
+from .answer import router as answer_router
+from .search import router as search_router
 
 STATIC_DIR = Path(__file__).parent / "static"
 

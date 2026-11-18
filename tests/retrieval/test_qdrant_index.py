@@ -12,17 +12,17 @@ import uuid
 from pathlib import Path
 
 import pytest
-from app.rag.chunking.models import Chunk
-from app.rag.embeddings.base import Embedder
-from app.rag.indexing.qdrant_index import (
+from qdrant_client import QdrantClient
+
+from peopleknowledge.ingestion.chunking.models import Chunk
+from peopleknowledge.retrieval.embeddings.base import Embedder
+from peopleknowledge.retrieval.qdrant_index import (
     IndexingError,
     ensure_collection,
     point_id,
     search,
     sync_chunks,
 )
-from qdrant_client import QdrantClient
-
 from scripts.index_chunks import main as index_main
 
 COLLECTION = "test"

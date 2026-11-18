@@ -7,9 +7,9 @@ import json
 from pathlib import Path
 
 import pytest
-from app.rag.chunking.models import Chunk
-from app.rag.parsers.models import ParsedDocument
 
+from peopleknowledge.ingestion.chunking.models import Chunk
+from peopleknowledge.ingestion.parsers.models import ParsedDocument
 from scripts.chunk_documents import main, run
 
 

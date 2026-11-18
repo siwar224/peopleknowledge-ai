@@ -31,10 +31,11 @@ from datetime import datetime
 from pathlib import Path
 from statistics import median
 
-from app.config import get_settings
-from app.rag.embeddings import Embedder
-from app.rag.evaluation.gold import Source, load_gold, source_of_chunk
-from app.rag.evaluation.retrieval_eval import (
+from qdrant_client import QdrantClient
+
+from peopleknowledge.config import get_settings
+from peopleknowledge.evaluation.gold import Source, load_gold, source_of_chunk
+from peopleknowledge.evaluation.retrieval_eval import (
     HIT_LEVELS,
     QuestionResult,
     Retrieved,
@@ -44,8 +45,8 @@ from app.rag.evaluation.retrieval_eval import (
     summaries_by_category,
     summarize,
 )
-from app.rag.indexing.qdrant_index import search
-from qdrant_client import QdrantClient
+from peopleknowledge.retrieval.embeddings import Embedder
+from peopleknowledge.retrieval.qdrant_index import search
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RESULTS_DIR = PROJECT_ROOT / "datasets" / "evaluation" / "results"
@@ -240,7 +241,7 @@ def main(argv: list[str] | None = None) -> int:
             print("ERROR: no Qdrant index yet (run scripts/index_chunks.py first).")
             return 1
         settings.apply_hugging_face_environment()  # before the model library is imported
-        from app.rag.embeddings import SentenceTransformerEmbedder
+        from peopleknowledge.retrieval.embeddings import SentenceTransformerEmbedder
 
         try:
             if settings.qdrant_url:

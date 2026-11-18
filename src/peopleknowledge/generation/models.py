@@ -8,8 +8,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from ..chunking.models import Chunk
 from ..evaluation.gold import Source
+from ..ingestion.chunking.models import Chunk
 
 
 class RetrievedChunk(BaseModel):

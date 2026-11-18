@@ -3,9 +3,9 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "peopleknowledge-api"
+name = "peopleknowledge-ai"
 version = "0.1.0"
-description = "RAG API to query the PeopleKnowledge document base."
+description = "RAG assistant answering HR questions with sourced, role-aware answers (fictional company)."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
@@ -33,9 +33,12 @@ dev = [
     "ruff>=0.7,<1.0",
 ]
 
+[tool.setuptools.package-data]
+peopleknowledge = ["api/static/*.html"]
+
 [tool.setuptools.packages.find]
-where = ["."]
-include = ["app*"]
+where = ["src"]
+include = ["peopleknowledge*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -44,6 +47,7 @@ asyncio_mode = "auto"
 
 [tool.ruff]
 line-length = 100
+src = ["src", "."]
 target-version = "py311"
 
 [tool.ruff.lint]

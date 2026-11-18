@@ -17,7 +17,6 @@ from datetime import date
 from ..evaluation.gold import UserContext
 from .models import BuiltContext, BuiltPrompt, PromptMessage
 
-
 SYSTEM_PROMPT = """
 You are PeopleKnowledge, the internal HR assistant for the
 fictional company NovaTech Solutions.

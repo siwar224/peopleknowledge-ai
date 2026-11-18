@@ -1,13 +1,14 @@
 import json
 
 import pytest
-from app.rag.parsers.models import (
+from pydantic import ValidationError
+
+from peopleknowledge.ingestion.parsers.models import (
     DocumentMetadata,
     ParsedDocument,
     ParsedElement,
     ParsingInfo,
 )
-from pydantic import ValidationError
 
 MANIFEST_RECORD = {
     # Document fields (kept)

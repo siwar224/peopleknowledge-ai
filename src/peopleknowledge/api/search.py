@@ -20,10 +20,10 @@ from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 from qdrant_client import QdrantClient
 
-from .config import Settings, get_settings
-from .rag.embeddings import Embedder
-from .rag.evaluation.gold import GoldQuestion, Source, load_gold, source_of_chunk
-from .rag.indexing.qdrant_index import search
+from ..config import Settings, get_settings
+from ..evaluation.gold import GoldQuestion, Source, load_gold, source_of_chunk
+from ..retrieval.embeddings import Embedder
+from ..retrieval.qdrant_index import search
 
 router = APIRouter(prefix="/api", tags=["search"])
 
@@ -40,7 +40,7 @@ class SearchService:
     @classmethod
     def from_settings(cls, settings: Settings) -> SearchService:
         settings.apply_hugging_face_environment()
-        from .rag.embeddings import SentenceTransformerEmbedder
+        from ..retrieval.embeddings import SentenceTransformerEmbedder
 
         if settings.qdrant_url:
             client = QdrantClient(url=settings.qdrant_url, api_key=settings.qdrant_api_key)

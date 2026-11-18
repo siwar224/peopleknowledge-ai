@@ -27,8 +27,8 @@ from typing import Any
 
 from qdrant_client import QdrantClient, models
 
-from ..chunking.models import Chunk
-from ..embeddings.base import Embedder
+from ..ingestion.chunking.models import Chunk
+from .embeddings.base import Embedder
 
 # Fixed namespace: uuid5(namespace, chunk_id) is stable across runs and machines.
 POINT_NAMESPACE = uuid.UUID("6f1c2d3e-4b5a-4c6d-8e7f-9a0b1c2d3e4f")

@@ -10,8 +10,8 @@ import re
 from functools import cache
 
 import pytest
-from app.rag.parsers.models import ParsedDocument
 
+from peopleknowledge.ingestion.parsers.models import ParsedDocument
 from scripts.parse_documents import (
     DEFAULT_CONFIG,
     PROJECT_ROOT,

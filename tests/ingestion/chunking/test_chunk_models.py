@@ -3,8 +3,9 @@
 import json
 
 import pytest
-from app.rag.chunking.models import Chunk
 from pydantic import ValidationError
+
+from peopleknowledge.ingestion.chunking.models import Chunk
 
 DOCUMENT = {
     "document_id": "HR-005",

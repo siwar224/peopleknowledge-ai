@@ -5,8 +5,9 @@ from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
-from app.rag.parsers import base
-from app.rag.parsers.base import (
+
+from peopleknowledge.ingestion.parsers import base
+from peopleknowledge.ingestion.parsers.base import (
     BaseParser,
     ElementDraft,
     ParsingError,
@@ -15,7 +16,7 @@ from app.rag.parsers.base import (
     register_parser,
     supported_extensions,
 )
-from app.rag.parsers.models import DocumentMetadata
+from peopleknowledge.ingestion.parsers.models import DocumentMetadata
 
 DOCUMENT = DocumentMetadata(
     document_id="HR-999",

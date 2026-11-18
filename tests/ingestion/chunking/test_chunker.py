@@ -5,8 +5,9 @@ checked with small numbers and without downloading a tokenizer.
 """
 
 import pytest
-from app.rag.chunking.chunker import ChunkingError, chunk_document
-from app.rag.parsers.models import ParsedDocument
+
+from peopleknowledge.ingestion.chunking.chunker import ChunkingError, chunk_document
+from peopleknowledge.ingestion.parsers.models import ParsedDocument
 
 DOCUMENT = {
     "document_id": "HR-900",

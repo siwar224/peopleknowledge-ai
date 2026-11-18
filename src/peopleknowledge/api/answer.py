@@ -11,10 +11,9 @@ import yaml
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field, ValidationError
 
-from .config import Settings, get_settings
-from .rag.chunking.models import Chunk
-from .rag.evaluation.gold import Source, UserContext
-from .rag.generation import (
+from ..config import Settings, get_settings
+from ..evaluation.gold import Source, UserContext
+from ..generation import (
     ContextSource,
     GenerationError,
     Generator,
@@ -23,8 +22,9 @@ from .rag.generation import (
     build_context,
     build_prompt,
 )
-from .rag.indexing.qdrant_index import search
-from .search_api import SearchResult, SearchService, get_search_service, to_result
+from ..ingestion.chunking.models import Chunk
+from ..retrieval.qdrant_index import search
+from .search import SearchResult, SearchService, get_search_service, to_result
 
 router = APIRouter(prefix="/api", tags=["answers"])
 

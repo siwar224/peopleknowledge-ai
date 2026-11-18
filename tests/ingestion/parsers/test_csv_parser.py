@@ -3,10 +3,11 @@
 from pathlib import Path
 
 import pytest
-from app.rag.parsers import get_parser
-from app.rag.parsers.base import ParsingError
-from app.rag.parsers.csv_parser import CsvParser
-from app.rag.parsers.models import DocumentMetadata
+
+from peopleknowledge.ingestion.parsers import get_parser
+from peopleknowledge.ingestion.parsers.base import ParsingError
+from peopleknowledge.ingestion.parsers.csv_parser import CsvParser
+from peopleknowledge.ingestion.parsers.models import DocumentMetadata
 
 DOCUMENT = DocumentMetadata(
     document_id="T-001",

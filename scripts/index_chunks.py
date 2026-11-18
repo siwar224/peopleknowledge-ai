@@ -27,11 +27,12 @@ import sys
 import time
 from pathlib import Path
 
-from app.rag.chunking.models import Chunk
-from app.rag.embeddings import Embedder, SentenceTransformerEmbedder
-from app.rag.indexing.qdrant_index import IndexingError, ensure_collection, sync_chunks
 from pydantic import ValidationError
 from qdrant_client import QdrantClient
+
+from peopleknowledge.ingestion.chunking.models import Chunk
+from peopleknowledge.retrieval.embeddings import Embedder, SentenceTransformerEmbedder
+from peopleknowledge.retrieval.qdrant_index import IndexingError, ensure_collection, sync_chunks
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_CHUNKS_DIR = PROJECT_ROOT / "datasets" / "processed" / "chunks"

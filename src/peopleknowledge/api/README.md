@@ -1,6 +1,6 @@
 # PeopleKnowledge API
 
-Python package of the PeopleKnowledge API. The application code lives in `app/`, and the RAG components in `app/rag/`.
+Web layer of PeopleKnowledge AI (FastAPI). It only wires HTTP to the RAG phases in `ingestion/`, `retrieval/`, `generation/` and `evaluation/`.
 
 Main endpoints:
 
