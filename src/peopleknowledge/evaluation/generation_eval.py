@@ -33,7 +33,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from .gold import GoldQuestion, Source
-from .key_facts import derive_key_facts, extract_numbers
+from .key_facts import TermVocabulary, derive_key_facts, extract_numbers, fact_present
 
 StatusVerdict = Literal["ok", "weak", "wrong"]
 
@@ -141,6 +141,7 @@ def evaluate_answer(
     system_prompt: str,
     gold: GoldQuestion | None = None,
     rules: dict[str, Any] | None = None,
+    vocabulary: TermVocabulary | None = None,
 ) -> GenerationEvaluation:
     """All checks of one answer. ``prompt_user_text`` = what the model was given."""
 
@@ -165,11 +166,10 @@ def evaluate_answer(
         return result
 
     expected_status, verdict = _status_verdict(gold, status)
-    derived = derive_key_facts(gold.rule_refs, rules or {}, gold.not_required_facts)
+    derived = derive_key_facts(gold.rule_refs, rules or {}, gold.not_required_facts, vocabulary)
     facts = [fact.value for fact in derived]
-    in_answer = extract_numbers(answer)
-    found = [f for f in facts if f in in_answer]
-    missing = [f for f in facts if f not in in_answer]
+    found = [fact.value for fact in derived if fact_present(fact, answer)]
+    missing = [fact.value for fact in derived if not fact_present(fact, answer)]
     sources = _source_check(gold, cited)
 
     if verdict == "wrong":

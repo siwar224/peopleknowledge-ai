@@ -30,8 +30,10 @@ def test_builds_one_system_message_then_one_user_message() -> None:
     assert [message.role for message in prompt.messages] == ["system", "user"]
     system = prompt.messages[0].content
     # The three statuses the generator accepts, and the three JSON fields it parses.
-    for status in ('"complete"', '"partial"', '"not_found"'):
+    for status in ("complete", "partial", "not_found"):
         assert status in system
+    # no example answer the model could copy (the Q016 bug: "A supported answer.")
+    assert '"answer": "..."' in system
     for field in ("status", "answer", "citations"):
         assert f'"{field}"' in system
     assert "USER CONTEXT" in system and "SOURCES" in system

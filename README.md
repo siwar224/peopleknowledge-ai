@@ -129,6 +129,21 @@ What the measurements taught:
 - With archived documents forced into the search, the old v1 policy reaches rank 2 on three version-conflict questions: **the lifecycle filter is necessary**, not cosmetic.
 - Unanswerable questions score in the same range as answerable ones, so a similarity threshold cannot detect "no answer"; the generation prompt has to.
 
+### Retrieval improvements, measured one at a time
+
+Each option of `src/peopleknowledge/retrieval/retriever.py` was measured against the baseline with `scripts/evaluate_retrieval.py` (same 30 questions, top 10):
+
+| Pipeline | hit@1 | hit@3 | hit@5 | MRR |
+|---|---:|---:|---:|---:|
+| dense (baseline) | 63 % | 80 % | 87 % | 0.777 |
+| **dense + profile** (kept, on by default) | **67 %** | 83 % | **97 %** | **0.818** |
+| dense + BM25 (RRF) | 57 % | 87 % | 87 % | 0.770 |
+| dense + BM25 + profile | 60 % | 90 % | 90 % | 0.799 |
+
+- **Profile**: table rows that name another department or job than the employee's are moved to the end, and at most 3 rows stay in the top. CSV-only questions go from 50 % to 75 % at rank 1. The values come from `company_profile.yaml`, not from code.
+- **Hybrid (BM25 + Reciprocal Rank Fusion)**: better top 3, but it pushes keyword-heavy chunks above the right section for direct questions (hit@1 drops), so it stays **off** (`RETRIEVAL_HYBRID=false`).
+- **Reranker** (cross-encoder `bge-reranker-v2-m3`): implemented, off until its weights (about 2.3 GB) are downloaded on purpose (`RERANKER_MODEL`).
+
 ### Generation evaluation
 
 Every generated answer is checked automatically, without an LLM judge (`src/peopleknowledge/evaluation/generation_eval.py`):
@@ -142,6 +157,24 @@ Every generated answer is checked automatically, without an LLM judge (`src/peop
 | Prompt leak / repeated question | no | the answer is not text copied from the system prompt or the question |
 
 Key facts are **derived** from `rule_refs`, not written by hand (`evaluation/key_facts.py`): a path can point to one list item (`annual_leave.notice_periods[2].notice_working_days`), document references (`HR-013`, `lot 2`) are ignored, and `validate_gold.py` fails when a gold answer does not contain all of its own key facts, so a too broad `rule_refs` is caught at once.
+
+#### Results (32 gold questions, Qwen 2.5 1.5B on a laptop CPU)
+
+Scored with the same checks (numbers + roles / systems / days). "Oracle" gives the model the expected sources directly; "e2e" is the whole system.
+
+| Run | Pass | Key facts | Status right | Latency p50 |
+|---|---:|---:|---:|---:|
+| oracle, former prompt | 56 % | 71 % | 91 % | 21 s |
+| oracle, short prompt (kept) | 50 % | 69 % | 94 % | 17 s |
+| **e2e baseline** (dense, former prompt) | **44 %** | 62 % | 91 % | 45 s |
+| **e2e now** (profile retrieval, short prompt) | **53 %** | 72 % | 91 % | 42 s |
+
+What it showed:
+
+- Oracle and e2e together locate each failure: 6 questions failed only in e2e (retrieval), 8 failed in both (generation).
+- The 470-line prompt was cut to about 50 lines. A first short version did worse (44 %, the model wrote `"not_found"` as a citation); one targeted fix brought it to 50 %, within two questions of the former prompt, faster, and without the copyable JSON example behind the Q016 bug.
+- **The two unanswerable questions still fail**: the 1.5B model answers them (`complete`), once with an invented figure. A prompt cannot fix this reliably: the next step is a "no answer" decision outside the LLM (reranker score threshold) or a larger model.
+- Citation precision is low in e2e (36 %): with 10 passages, the model cites more sources than it uses.
 
 The checks run on **every answer of the web page** (generic checks for a free question, all checks for a gold scenario), and on the 32 questions with `scripts/evaluate_generation.py`, in two modes: `e2e` (through the running API) and `oracle` (the model receives the expected sources directly: it measures the generation alone, so a low e2e score with a good oracle score points to the retrieval).
 
@@ -234,7 +267,7 @@ python scripts/validate_gold.py                       # check the gold questions
 python scripts/evaluate_retrieval.py --label baseline # retrieval metrics
 python scripts/evaluate_generation.py --label baseline                      # generation, via the running API
 python scripts/evaluate_generation.py --mode oracle --label baseline_oracle # generation alone (llama-server only)
-python -m pytest                                      # 284 tests
+python -m pytest                                      # 292 tests
 python -m ruff check .
 ```
 

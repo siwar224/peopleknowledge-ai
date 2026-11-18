@@ -29,6 +29,14 @@ class Settings(BaseSettings):
 
     # Embedding model: must be the one used by scripts/index_chunks.py.
     embedding_model: str = "BAAI/bge-m3"
+    # Retrieval options (retrieval/retriever.py), each measured with evaluate_retrieval.py.
+    retrieval_hybrid: bool = False  # + BM25 keyword search fused by RRF
+    # table rows about other departments/jobs moved last; on: measured best (MRR 0.777 -> 0.818)
+    retrieval_profile: bool = True
+    retrieval_max_records: int | None = Field(default=3, ge=1)  # table rows kept in the top
+    retrieval_candidates: int = Field(default=30, ge=1)  # pool before fusion / rerank / profile
+    reranker_model: str | None = None  # e.g. BAAI/bge-reranker-v2-m3 (download it first)
+
     # Hugging Face cache. Set it (e.g. D:\huggingface) when the system variable is not visible.
     hf_home: str | None = None
     # Never download a model from the API: a missing model is an error, not a 2 GB surprise.

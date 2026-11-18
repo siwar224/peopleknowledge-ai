@@ -1,0 +1,43 @@
+# Runs on every push and pull request: the tests, the lint and the gold file format.
+#
+# The corpus (datasets/source_documents) and the chunks are NOT in the repository:
+# the tests that need them are skipped automatically, and no model is downloaded
+# (the tests use fake embedders / generators). torch is installed from the CPU
+# index to keep the job small (the default wheel bundles CUDA, several GB).
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
+          python -m pip install -e ".[dev,corpus]"
+
+      - name: Lint (package)
+        # scripts/ and tests/ still hold older long lines; the package is clean.
+        run: python -m ruff check src
+
+      - name: Gold questions load and are well formed
+        run: |
+          python -c "from pathlib import Path; from peopleknowledge.evaluation.gold import load_gold; print(len(load_gold(Path('datasets/evaluation/rag_questions_gold.jsonl'))), 'gold questions OK')"
+
+      - name: Tests
+        env:
+          HF_HUB_OFFLINE: "1"
+        run: python -m pytest -q

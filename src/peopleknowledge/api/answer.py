@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field, ValidationError
 from ..config import Settings, get_settings
 from ..evaluation.generation_eval import GenerationEvaluation, evaluate_answer
 from ..evaluation.gold import GoldQuestion, Source, UserContext, load_gold
+from ..evaluation.key_facts import TermVocabulary
 from ..generation import (
     ContextSource,
     GenerationError,
@@ -28,7 +29,7 @@ from ..generation import (
     build_context,
     build_prompt,
 )
-from ..retrieval.qdrant_index import chunk_from_payload, search
+from ..retrieval.qdrant_index import chunk_from_payload
 from .search import SearchResult, SearchService, get_search_service, to_result
 
 router = APIRouter(prefix="/api", tags=["answers"])
@@ -102,7 +103,9 @@ class AnswerResponse(BaseModel):
     status: str
     answer: str
     citations: list[AnswerCitation]
+    dropped_citations: list[str]  # labels cited by the model that were not in the prompt
     model: str
+    retrieval: str  # the retrieval pipeline used, e.g. "dense+bm25-rrf"
     include_archived: bool
     reference_date: date
     retrieved_count: int
@@ -111,19 +114,28 @@ class AnswerResponse(BaseModel):
     evaluation: GenerationEvaluation
 
 
-def _gold_and_rules(settings: Settings, gold_id: str | None) -> tuple[GoldQuestion | None, dict]:
-    """The gold question to compare with (404 if unknown) and the rules of its key facts."""
+def _gold_and_rules(
+    settings: Settings, gold_id: str | None
+) -> tuple[GoldQuestion | None, dict, TermVocabulary | None]:
+    """The gold question to compare with (404 if unknown), the rules of its key
+    facts and the vocabulary of its term facts (roles, systems, days)."""
 
     if gold_id is None:
-        return None, {}
+        return None, {}, None
     try:
         questions = {question.id: question for question in load_gold(settings.gold_path)}
         rules = yaml.safe_load(settings.rules_path.read_text(encoding="utf-8")) or {}
+        profile_path = settings.company_profile_path
+        profile = (
+            yaml.safe_load(profile_path.read_text(encoding="utf-8"))
+            if profile_path.exists()
+            else {}
+        )
     except (OSError, ValueError, yaml.YAMLError) as error:
         raise HTTPException(status_code=500, detail=f"evaluation files: {error}") from error
     if gold_id not in questions:
         raise HTTPException(status_code=404, detail=f"unknown gold question {gold_id!r}.")
-    return questions[gold_id], rules
+    return questions[gold_id], rules, TermVocabulary.from_profile(profile or {})
 
 
 def _citation(source_id: str, sources: dict[str, ContextSource]) -> AnswerCitation:
@@ -150,18 +162,16 @@ def answer_question(
 ) -> AnswerResponse:
     """Retrieve evidence, build the prompt, generate, resolve citations, evaluate."""
 
-    gold, rules = _gold_and_rules(settings, body.gold_id)
+    gold, rules, vocabulary = _gold_and_rules(settings, body.gold_id)
     started = time.perf_counter()
     retrieval_started = time.perf_counter()
     try:
         with search_service.lock:
-            points = search(
-                search_service.client,
-                search_service.collection,
-                search_service.embedder,
+            points = search_service.retriever.retrieve(
                 body.question,
                 limit=body.limit,
                 include_archived=body.include_archived,
+                user_context=body.user_context.model_dump(exclude_none=True),
             )
     except OSError as error:
         raise HTTPException(
@@ -219,13 +229,16 @@ def answer_question(
         system_prompt=prompt.messages[0].content,
         gold=gold,
         rules=rules,
+        vocabulary=vocabulary,
     )
     return AnswerResponse(
         question=body.question,
         status=result.answer.status,
         answer=result.answer.answer,
         citations=citations,
+        dropped_citations=result.dropped_citations,
         model=result.model,
+        retrieval=search_service.retriever.describe(),
         include_archived=body.include_archived,
         reference_date=body.reference_date,
         retrieved_count=len(points),

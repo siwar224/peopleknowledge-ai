@@ -86,7 +86,7 @@ def test_forbidden_sources_are_reported() -> None:
 def test_only_history_questions_search_archived_documents_by_default() -> None:
     calls: list[tuple[str, bool]] = []
 
-    def retriever(question: str, include_archived: bool) -> list[Retrieved]:
+    def retriever(question: str, include_archived: bool, user_context: dict) -> list[Retrieved]:
         calls.append((question, include_archived))
         return []
 
@@ -148,11 +148,18 @@ def test_api_retriever_asks_the_search_endpoint() -> None:
         }
 
     retrieve = api_retriever("http://localhost:8001/", limit=10, post_json=fake_post)
-    found = retrieve("Congés pendant l'essai ?", True)
+    found = retrieve("Congés pendant l'essai ?", True, {"department": "sales"})
 
     assert calls == [
-        ("http://localhost:8001/api/search",
-         {"question": "Congés pendant l'essai ?", "limit": 10, "include_archived": True})
+        (
+            "http://localhost:8001/api/search",
+            {
+                "question": "Congés pendant l'essai ?",
+                "limit": 10,
+                "include_archived": True,
+                "user_context": {"department": "sales"},
+            },
+        )
     ]
     assert found == [Retrieved(source=source("HR-005 4.2"), chunk_id="HR-005-v1.2#4.2", score=0.8)]
 

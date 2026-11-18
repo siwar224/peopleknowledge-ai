@@ -21,9 +21,11 @@ from pydantic import BaseModel, Field
 from qdrant_client import QdrantClient
 
 from ..config import Settings, get_settings
-from ..evaluation.gold import GoldQuestion, Source, load_gold, source_of_chunk
+from ..evaluation.gold import GoldQuestion, Source, UserContext, load_gold, source_of_chunk
 from ..retrieval.embeddings import Embedder
-from ..retrieval.qdrant_index import search
+from ..retrieval.profile_filter import ProfileVocabulary
+from ..retrieval.reranker import CrossEncoderReranker
+from ..retrieval.retriever import RetrievalOptions, Retriever
 
 router = APIRouter(prefix="/api", tags=["search"])
 
@@ -31,10 +33,17 @@ router = APIRouter(prefix="/api", tags=["search"])
 class SearchService:
     """Everything a search needs, created once and shared by the requests."""
 
-    def __init__(self, client: QdrantClient, embedder: Embedder, collection: str) -> None:
+    def __init__(
+        self,
+        client: QdrantClient,
+        embedder: Embedder,
+        collection: str,
+        retriever: Retriever | None = None,
+    ) -> None:
         self.client = client
         self.embedder = embedder
         self.collection = collection
+        self.retriever = retriever or Retriever(client, collection, embedder)
         self.lock = threading.Lock()  # the local Qdrant client and the model are not thread-safe
 
     @classmethod
@@ -48,11 +57,25 @@ class SearchService:
             if not settings.qdrant_path.exists():
                 raise RuntimeError("no Qdrant index yet: run scripts/index_chunks.py first.")
             client = QdrantClient(path=str(settings.qdrant_path))
-        return cls(
+        embedder = SentenceTransformerEmbedder(settings.embedding_model)
+        retriever = Retriever(
             client,
-            SentenceTransformerEmbedder(settings.embedding_model),
             settings.qdrant_collection,
+            embedder,
+            options=RetrievalOptions(
+                hybrid=settings.retrieval_hybrid,
+                profile=settings.retrieval_profile,
+                max_records=settings.retrieval_max_records,
+                candidates=settings.retrieval_candidates,
+            ),
+            vocabulary=ProfileVocabulary.from_file(settings.company_profile_path)
+            if settings.retrieval_profile
+            else None,
+            reranker=CrossEncoderReranker(settings.reranker_model)
+            if settings.reranker_model
+            else None,
         )
+        return cls(client, embedder, settings.qdrant_collection, retriever)
 
 
 _creation_lock = threading.Lock()
@@ -76,6 +99,7 @@ class SearchRequest(BaseModel):
     question: str = Field(min_length=2, max_length=1000)
     limit: int = Field(default=5, ge=1, le=20)
     include_archived: bool = False
+    user_context: UserContext = Field(default_factory=UserContext)  # used by the profile option
 
 
 class SearchResult(BaseModel):
@@ -95,6 +119,7 @@ class SearchResult(BaseModel):
 
 class SearchResponse(BaseModel):
     question: str
+    retrieval: str  # the pipeline used, e.g. "dense+bm25-rrf"
     include_archived: bool
     elapsed_ms: int
     results: list[SearchResult]
@@ -125,24 +150,22 @@ def search_chunks(
     started = time.perf_counter()
     try:
         with service.lock:
-            points = search(
-                service.client,
-                service.collection,
-                service.embedder,
+            points = service.retriever.retrieve(
                 body.question,
                 limit=body.limit,
                 include_archived=body.include_archived,
+                user_context=body.user_context.model_dump(exclude_none=True),
             )
     except OSError as error:  # model not in the Hugging Face cache (downloads are disabled)
         raise HTTPException(
             status_code=503,
             detail=(
-                f"embedding model not available: {error}. "
-                "Is HF_HOME set (e.g. D:\\huggingface)?"
+                f"embedding model not available: {error}. Is HF_HOME set (e.g. D:\\huggingface)?"
             ),
         ) from error
     return SearchResponse(
         question=body.question,
+        retrieval=service.retriever.describe(),
         include_archived=body.include_archived,
         elapsed_ms=int((time.perf_counter() - started) * 1000),
         results=[to_result(rank, p.score, p.payload or {}) for rank, p in enumerate(points, 1)],

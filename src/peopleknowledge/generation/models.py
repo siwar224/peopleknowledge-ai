@@ -135,3 +135,5 @@ class GenerationResult(BaseModel):
     answer: GeneratedAnswer
     model: str = Field(min_length=1)
     elapsed_ms: int = Field(ge=0)
+    # labels the model cited that were NOT in the prompt: removed instead of failing
+    dropped_citations: list[str] = Field(default_factory=list)

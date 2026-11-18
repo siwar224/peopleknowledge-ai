@@ -1,7 +1,17 @@
-"""Generate answers through an OpenAI-compatible server such as llama-server."""
+"""Generate answers through an OpenAI-compatible server such as llama-server.
+
+Citation handling is TOLERANT but safe: a small model sometimes cites a label
+that was not in the prompt ("S7" with 5 sources) or writes "[S1]" in the text.
+Unknown labels are dropped (and reported in ``dropped_citations``) instead of
+turning a good answer into an HTTP 502; inline labels are removed from the text
+and kept as citations. The safety rule stays: a complete or partial answer
+that cites NO available source is still refused.
+"""
 
 from __future__ import annotations
 
+import json
+import re
 import time
 from typing import Any
 
@@ -72,18 +82,47 @@ class OpenAICompatibleGenerator(Generator):
             raise GenerationError("generation server returned empty content.")
 
         try:
-            answer = GeneratedAnswer.model_validate_json(content)
+            data = json.loads(content)
+        except json.JSONDecodeError as error:
+            raise GenerationError(
+                f"generation server returned invalid answer JSON: {error}"
+            ) from error
+        if not isinstance(data, dict):
+            raise GenerationError("generation server returned invalid answer JSON: not an object.")
+
+        data, dropped = _clean_citations(data, prompt.allowed_source_ids)
+        if dropped and not data.get("citations") and data.get("status") != "not_found":
+            raise GenerationError(f"answer cites only unavailable source label(s): {dropped}.")
+        try:
+            answer = GeneratedAnswer.model_validate(data)
         except ValidationError as error:
             raise GenerationError(
                 f"generation server returned invalid answer JSON: {error}"
             ) from error
 
-        unknown = sorted(set(answer.citations) - set(prompt.allowed_source_ids))
-        if unknown:
-            raise GenerationError(f"answer cites unavailable source label(s): {unknown}.")
-
         return GenerationResult(
             answer=answer,
             model=self.model,
             elapsed_ms=int((time.perf_counter() - started) * 1000),
+            dropped_citations=dropped,
         )
+
+
+_INLINE_LABEL = re.compile(r"\s*\[(S[1-9]\d*)\]")
+
+
+def _clean_citations(data: dict, allowed: list[str]) -> tuple[dict, list[str]]:
+    """Move inline [S1] labels to the citations list, drop labels not in the prompt."""
+
+    answer = data.get("answer")
+    citations = data.get("citations")
+    if not isinstance(answer, str) or not isinstance(citations, list):
+        return data, []  # left to the model validation, which explains the problem
+    inline = _INLINE_LABEL.findall(answer)
+    labels = [c for c in [*citations, *inline] if isinstance(c, str)]
+    kept = [c for c in dict.fromkeys(labels) if c in allowed]
+    dropped = sorted({c for c in labels if c not in allowed})
+    cleaned = {**data, "answer": _INLINE_LABEL.sub("", answer).strip(), "citations": kept}
+    if any(not isinstance(c, str) for c in citations):
+        cleaned["citations"] = citations  # malformed: let the model validation report it
+    return cleaned, dropped

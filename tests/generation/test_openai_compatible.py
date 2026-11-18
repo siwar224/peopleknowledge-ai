@@ -111,16 +111,6 @@ def test_sends_chat_messages_and_parses_a_grounded_json_answer() -> None:
             ),
             "needs at least one citation",
         ),
-        (
-            json.dumps(
-                {
-                    "status": "complete",
-                    "answer": "Réponse [S1].",
-                    "citations": ["S2"],
-                }
-            ),
-            "inline citation",
-        ),
     ],
 )
 def test_rejects_malformed_or_internally_inconsistent_answers(
@@ -132,7 +122,20 @@ def test_rejects_malformed_or_internally_inconsistent_answers(
         generator.generate(prompt_with_source())
 
 
-def test_rejects_a_well_formed_but_unavailable_citation() -> None:
+def test_inline_labels_become_citations_and_unknown_labels_are_dropped() -> None:
+    content = json.dumps(
+        {"status": "complete", "answer": "Deux jours [S1].", "citations": ["S2", "S1"]}
+    )
+    generator, _ = generator_with(content)
+
+    result = generator.generate(prompt_with_source())
+
+    assert result.answer.answer == "Deux jours."
+    assert result.answer.citations == ["S1"]
+    assert result.dropped_citations == ["S2"]
+
+
+def test_rejects_an_answer_citing_only_unavailable_sources() -> None:
     content = json.dumps(
         {
             "status": "complete",

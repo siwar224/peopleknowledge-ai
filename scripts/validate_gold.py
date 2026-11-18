@@ -30,8 +30,9 @@ import yaml
 from peopleknowledge.evaluation.gold import GoldQuestion, Source, load_gold, source_of_chunk
 from peopleknowledge.evaluation.key_facts import (
     RuleRefError,
+    TermVocabulary,
     derive_key_facts,
-    extract_numbers,
+    fact_present,
     resolve_rule,
 )
 
@@ -68,12 +69,18 @@ def rule_exists(rules: dict[str, Any], path: str) -> bool:
     return True
 
 
-def missing_key_facts(question: GoldQuestion, rules: dict[str, Any]) -> list[str]:
-    """Key facts of the question that its own gold answer does not contain."""
+def missing_key_facts(
+    question: GoldQuestion, rules: dict[str, Any], vocabulary: TermVocabulary | None = None
+) -> list[str]:
+    """Key facts of the question that its own gold answer does not contain
+    (numbers, and roles / systems / days when a vocabulary is given)."""
 
-    facts = derive_key_facts(question.rule_refs, rules, question.not_required_facts)
-    present = extract_numbers(question.expected_answer)
-    return [fact.value for fact in facts if fact.value not in present]
+    facts = derive_key_facts(question.rule_refs, rules, question.not_required_facts, vocabulary)
+    return [
+        fact.entity or fact.value
+        for fact in facts
+        if not fact_present(fact, question.expected_answer)
+    ]
 
 
 def profile_ids(profile: dict[str, Any]) -> dict[str, set[str]]:
@@ -88,6 +95,7 @@ def check(
     sources: set[Source],
     rules: dict[str, Any],
     ids: dict[str, set[str]],
+    vocabulary: TermVocabulary | None = None,
 ) -> list[str]:
     """All cross-file problems, as readable messages (empty list = valid)."""
 
@@ -107,7 +115,7 @@ def check(
         bad_paths = [path for path in question.rule_refs if not rule_exists(rules, path)]
         for path in bad_paths:
             errors.append(f"{question.id}: rule_refs {path!r} not in canonical_policy_rules.yaml.")
-        missing = [] if bad_paths else missing_key_facts(question, rules)
+        missing = [] if bad_paths else missing_key_facts(question, rules, vocabulary)
         if missing:
             errors.append(
                 f"{question.id}: gold answer lacks key fact(s) {missing} of its rule_refs "
@@ -154,7 +162,13 @@ def main(argv: list[str] | None = None) -> int:
 
     rules = yaml.safe_load(arguments.rules.read_text(encoding="utf-8"))
     profile = yaml.safe_load(arguments.profile.read_text(encoding="utf-8"))
-    errors = check(questions, source_index(arguments.chunks_dir), rules, profile_ids(profile))
+    errors = check(
+        questions,
+        source_index(arguments.chunks_dir),
+        rules,
+        profile_ids(profile),
+        TermVocabulary.from_profile(profile),
+    )
 
     print_summary(questions)
     for error in errors:

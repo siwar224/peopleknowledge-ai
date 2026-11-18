@@ -13,7 +13,14 @@ version searchable, how often does it come back for a current question?
 The local Qdrant folder can be opened by ONE program at a time: stop the API
 (uvicorn) before running this script. Settings (HF_HOME...) come from .env.
 
+Retrieval options (one at a time, to measure each against the baseline):
+``--hybrid`` (BM25 keyword search fused by RRF), ``--profile`` (table rows
+about other departments / jobs moved last, at most ``--max-records`` rows in
+the top), ``--reranker MODEL`` (cross-encoder). Through ``--api-url`` the
+options are the API's settings (RETRIEVAL_HYBRID...) instead.
+
 Usage:
+    python scripts/evaluate_retrieval.py --hybrid --label hybrid
     python scripts/evaluate_retrieval.py
     python scripts/evaluate_retrieval.py --label baseline
     python scripts/evaluate_retrieval.py --archived always --label stress
@@ -45,19 +52,21 @@ from peopleknowledge.evaluation.retrieval_eval import (
     summaries_by_category,
     summarize,
 )
-from peopleknowledge.retrieval.embeddings import Embedder
-from peopleknowledge.retrieval.qdrant_index import search
+from peopleknowledge.retrieval.profile_filter import ProfileVocabulary
+from peopleknowledge.retrieval.reranker import CrossEncoderReranker
+from peopleknowledge.retrieval.retriever import RetrievalOptions
+from peopleknowledge.retrieval.retriever import Retriever as Pipeline
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RESULTS_DIR = PROJECT_ROOT / "datasets" / "evaluation" / "results"
 
 
-def qdrant_retriever(
-    client: QdrantClient, collection: str, embedder: Embedder, limit: int
-) -> Retriever:
-    def retrieve(question: str, include_archived: bool) -> list[Retrieved]:
-        points = search(
-            client, collection, embedder, question, limit=limit, include_archived=include_archived
+def pipeline_retriever(pipeline: Pipeline, limit: int) -> Retriever:
+    """The evaluation's retriever function, on top of the project's retrieval pipeline."""
+
+    def retrieve(question: str, include_archived: bool, user_context: dict) -> list[Retrieved]:
+        points = pipeline.retrieve(
+            question, limit=limit, include_archived=include_archived, user_context=user_context
         )
         return [
             Retrieved(
@@ -93,8 +102,13 @@ def api_retriever(api_url: str, limit: int, post_json: PostJson = http_post_json
 
     endpoint = api_url.rstrip("/") + "/api/search"
 
-    def retrieve(question: str, include_archived: bool) -> list[Retrieved]:
-        body = {"question": question, "limit": limit, "include_archived": include_archived}
+    def retrieve(question: str, include_archived: bool, user_context: dict) -> list[Retrieved]:
+        body = {
+            "question": question,
+            "limit": limit,
+            "include_archived": include_archived,
+            "user_context": user_context,
+        }
         return [
             Retrieved(
                 source=Source(**result["source"]),
@@ -159,7 +173,9 @@ def print_report(results: list[QuestionResult], limit: int) -> None:
     for result in results:
         if not result.answerable and result.top_score is not None:
             first = result.retrieved[0]
-            print(f"  {result.question.id} {result.top_score:.3f} ({name(first.source)})  {result.question.question}")
+            print(
+                f"  {result.question.id} {result.top_score:.3f} ({name(first.source)})  {result.question.question}"
+            )
     if answerable_scores:
         print(
             f"  for comparison, answerable questions: best score median "
@@ -222,7 +238,15 @@ def main(argv: list[str] | None = None) -> int:
         help="search through a running API (e.g. http://localhost:8000) instead of opening "
         "the index; needed while the API holds the local Qdrant folder. Top 20 at most.",
     )
+    parser.add_argument("--hybrid", action="store_true", help="+ BM25 keyword search (RRF)")
+    parser.add_argument("--profile", action="store_true", help="use the user context")
+    parser.add_argument("--max-records", type=int, default=3, help="table rows kept (profile)")
+    parser.add_argument("--candidates", type=int, default=30, help="pool before rerank/profile")
+    parser.add_argument(
+        "--reranker", default=None, help="cross-encoder, e.g. BAAI/bge-reranker-v2-m3"
+    )
     arguments = parser.parse_args(argv)
+    pipeline_name = "API settings" if arguments.api_url else "dense"
 
     try:
         questions = load_gold(arguments.gold)
@@ -256,16 +280,29 @@ def main(argv: list[str] | None = None) -> int:
             return 1
         try:
             embedder = SentenceTransformerEmbedder(settings.embedding_model)
-            retriever = qdrant_retriever(
-                client, settings.qdrant_collection, embedder, arguments.limit
+            pipeline = Pipeline(
+                client,
+                settings.qdrant_collection,
+                embedder,
+                options=RetrievalOptions(
+                    hybrid=arguments.hybrid,
+                    profile=arguments.profile,
+                    max_records=arguments.max_records,
+                    candidates=arguments.candidates,
+                ),
+                vocabulary=ProfileVocabulary.from_file(settings.company_profile_path),
+                reranker=CrossEncoderReranker(arguments.reranker) if arguments.reranker else None,
             )
+            pipeline_name = pipeline.describe()
+            retriever = pipeline_retriever(pipeline, arguments.limit)
             results = evaluate(questions, retriever, archived=arguments.archived)
         finally:
             client.close()
 
     print(
         f"Retrieval evaluation: {len(questions)} gold questions, model {settings.embedding_model}, "
-        f"top {arguments.limit}, archived documents: {arguments.archived}\n"
+        f"top {arguments.limit}, archived documents: {arguments.archived}, "
+        f"pipeline: {pipeline_name}\n"
     )
     print_report(results, arguments.limit)
 
@@ -275,6 +312,7 @@ def main(argv: list[str] | None = None) -> int:
         "collection": settings.qdrant_collection,
         "limit": arguments.limit,
         "archived": arguments.archived,
+        "pipeline": pipeline_name,
         "gold_questions": len(questions),
     }
     arguments.results_dir.mkdir(parents=True, exist_ok=True)

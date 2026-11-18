@@ -44,6 +44,7 @@ from peopleknowledge.evaluation.generation_eval import (
     summarize_generation,
 )
 from peopleknowledge.evaluation.gold import GoldQuestion, Source, load_gold, source_of_chunk
+from peopleknowledge.evaluation.key_facts import TermVocabulary
 from peopleknowledge.generation import (
     GenerationError,
     Generator,
@@ -94,7 +95,11 @@ Runner = Callable[[GoldQuestion], dict[str, Any]]
 
 
 def oracle_runner(
-    generator: Generator, chunks: dict[Source, list[Chunk]], rules: dict[str, Any], day: date
+    generator: Generator,
+    chunks: dict[Source, list[Chunk]],
+    rules: dict[str, Any],
+    day: date,
+    vocabulary: TermVocabulary | None = None,
 ) -> Runner:
     def run(question: GoldQuestion) -> dict[str, Any]:
         context = build_context(
@@ -115,6 +120,7 @@ def oracle_runner(
             system_prompt=prompt.messages[0].content,
             gold=question,
             rules=rules,
+            vocabulary=vocabulary,
         )
         return {
             "status": result.answer.status,
@@ -274,7 +280,8 @@ def main(argv: list[str] | None = None) -> int:
             max_tokens=settings.llm_max_tokens,
             timeout_seconds=settings.llm_timeout_seconds,
         )
-        runner = oracle_runner(generator, chunks, rules, day)
+        profile = yaml.safe_load(settings.company_profile_path.read_text(encoding="utf-8"))
+        runner = oracle_runner(generator, chunks, rules, day, TermVocabulary.from_profile(profile))
         print(
             f"oracle mode: {settings.llm_model} at {settings.llm_base_url},"
             f" temperature {arguments.temperature}"

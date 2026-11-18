@@ -4,8 +4,10 @@ import pytest
 
 from peopleknowledge.evaluation.key_facts import (
     RuleRefError,
+    TermVocabulary,
     derive_key_facts,
     extract_numbers,
+    fact_present,
     resolve_rule,
 )
 
@@ -74,3 +76,40 @@ def test_a_list_index_avoids_requiring_every_item() -> None:
 
 def test_not_required_facts_are_left_out() -> None:
     assert derive_key_facts(["leave.mixed"], RULES, not_required=["2"]) == []
+
+
+PROFILE = {
+    "roles": [
+        {"id": "manager", "label": "Manager", "aliases": ["manager", "N+1"]},
+        {"id": "hr_admin", "label": "Administrateur RH", "aliases": ["équipe RH", "RH", "HR"]},
+    ],
+    "systems": [{"id": "portal", "label": "PortalX", "aliases": ["portail RH"]}],
+}
+
+
+def test_term_facts_come_from_roles_systems_and_weekdays() -> None:
+    vocabulary = TermVocabulary.from_profile(PROFILE)
+    rules = {
+        "leave": {
+            "rule": "accord du manager ET validation RH (hr_admin) dans PortalX, sauf le lundi"
+        },
+        "ref": "voir HR-013",
+    }
+
+    facts = derive_key_facts(["leave.rule", "ref"], rules, vocabulary=vocabulary)
+
+    assert [(f.kind, f.entity) for f in facts] == [
+        ("term", "hr_admin"),
+        ("term", "lundi"),
+        ("term", "manager"),
+        ("term", "portal"),
+    ]  # "HR-013" is a document reference, not the HR team
+
+
+def test_a_term_fact_is_present_under_any_of_its_names() -> None:
+    vocabulary = TermVocabulary.from_profile(PROFILE)
+    (fact,) = derive_key_facts(["r"], {"r": "validation hr_admin"}, vocabulary=vocabulary)
+
+    assert fact_present(fact, "Il faut la validation de l'Équipe RH.")
+    assert not fact_present(fact, "Il faut l'accord du manager.")
+    assert derive_key_facts(["r"], {"r": "hr_admin"}, ["hr_admin"], vocabulary) == []

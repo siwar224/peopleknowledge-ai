@@ -43,8 +43,9 @@ class Retrieved:
     score: float
 
 
-# (question text, include archived documents?) -> results in rank order
-Retriever = Callable[[str, bool], list[Retrieved]]
+# (question text, include archived documents?, user context) -> results in rank order.
+# The user context (department, job...) lets a retriever apply the profile option.
+Retriever = Callable[[str, bool, dict], list[Retrieved]]
 
 
 @dataclass
@@ -141,7 +142,9 @@ def evaluate(
     results = []
     for question in questions:
         include = archived == "always" or (archived == "history" and needs_archived(question))
-        results.append(evaluate_question(question, retriever(question.question, include), include))
+        context = question.user_context.model_dump(exclude_none=True)
+        retrieved = retriever(question.question, include, context)
+        results.append(evaluate_question(question, retrieved, include))
     return results
 
 
